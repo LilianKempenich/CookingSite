@@ -1262,7 +1262,7 @@ function recipeForm(r, focus) {
         <textarea id="rf-paste" rows="5" placeholder="Copy a recipe from a website, email or note and paste it here. Little Whisk will split it into title, ingredients and steps."></textarea>
         <div class="head-actions">
           <button type="button" class="btn sm" data-m="split">Fill in the form</button>
-          ${ai ? `<button type="button" class="btn sm" data-m="tidy">${I.spark}Tidy it with Claude</button>` : ''}
+          <button type="button" class="btn sm" data-m="tidy">${I.spark}Tidy it with Claude</button>
         </div>
         <p class="ai-out" id="rf-ai" hidden></p>
       </details>
@@ -1314,7 +1314,16 @@ function recipeForm(r, focus) {
   let ctl = null;
   m.on('tidy', async btn => {
     const t = E('rf-paste').value; if (!t.trim()) { E('rf-paste').focus(); return; }
-    const out = E('rf-ai'); out.hidden = false; out.textContent = 'Reading the recipe…';
+    const out = E('rf-ai'); out.hidden = false;
+    if (!ai) {
+      out.innerHTML = IN_CLAUDE
+        ? 'Claude isn\'t allowed on this page right now. Use “Fill in the form” instead.'
+        : `On this site, Claude needs your own Anthropic API key. Paste it below (it starts with sk-ant-). It's saved only in this browser, and each tidy-up costs a few cents on your Anthropic account. Get a key at console.anthropic.com.
+           <span class="quickadd" style="margin-top:8px"><input id="rf-key" type="password" placeholder="sk-ant-…" autocomplete="off" aria-label="Anthropic API key"><button type="button" class="btn sm primary" data-m="rfkey">Save and tidy</button></span>`;
+      if (!IN_CLAUDE) E('rf-key').focus();
+      return;
+    }
+    out.textContent = 'Reading the recipe…';
     btn.disabled = true; ctl = new AbortController();
     try {
       const o = await ai.json(`Turn this pasted recipe into structured data. Reply with only JSON in this shape:
@@ -1329,6 +1338,12 @@ ${t.slice(0, 24000)}
       else out.textContent = 'That did not come back in a usable shape. Try “Fill in the form” instead.';
     } catch (e) { out.textContent = aiErr(e); }
     finally { btn.disabled = false; }
+  });
+  m.on('rfkey', () => {
+    const v = E('rf-key').value.trim();
+    if (!/^sk-ant-/.test(v)) { toast('That does not look like an Anthropic API key. It starts with sk-ant-'); return; }
+    LS.set('lw:apikey', v); ai = keyAi();
+    $('[data-m="tidy"]', m.el).click();
   });
   m.onClose(() => ctl && ctl.abort());
   m.on('save', () => {
