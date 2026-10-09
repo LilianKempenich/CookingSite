@@ -414,7 +414,7 @@ body.cook .step { padding-block: 14px; }
     <div class="view-head">
       <div><h1>Shopping list</h1><p class="sub" id="shop-sub">What to pick up</p></div>
       <div class="head-actions">
-        <button type="button" class="btn" data-act="s-where" id="s-where" hidden><svg class="i spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>Find where to buy</button>
+        <button type="button" class="btn" data-act="s-where" id="s-where"><svg class="i spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>Find where to buy</button>
         <button type="button" class="btn" data-act="stores">My stores</button>
       </div>
     </div>
@@ -766,6 +766,80 @@ const state = {
   scale: {}, metric: false, cook: false
 };
 let ai = null, downloads = null, wakeLock = null;
+const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
+
+/* Claude outside the Claude app (e.g. GitHub Pages): uses the viewer's own Anthropic API key, kept only in this browser. */
+const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.128.0/+esm';
+let sdkPromise = null;
+function parseLooseJSON(text) {
+  const t = String(text || '').trim();
+  try { return JSON.parse(t); } catch {}
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) { try { return JSON.parse(fence[1]); } catch {} }
+  const a = t.search(/[[{]/), b = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'));
+  if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch {} }
+  throw { code: 'invalid_json' };
+}
+function keyAi() {
+  const key = LS.get('lw:apikey', '');
+  if (!key) return null;
+  return {
+    viaKey: true,
+    async json(prompt, opts = {}) {
+      let Anthropic;
+      try { sdkPromise = sdkPromise || import(SDK_URL); Anthropic = (await sdkPromise).default; }
+      catch { sdkPromise = null; throw { code: 'upstream_error' }; }
+      const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true, maxRetries: 1 });
+      let res;
+      try {
+        res = await client.beta.messages.create({
+          model: 'claude-opus-5-5',
+          max_tokens: 16000,
+          output_config: { effort: 'low' },
+          betas: ['server-side-fallback-2026-07-01'],
+          fallbacks: 'default',
+          messages: [{ role: 'user', content: prompt + '\n\nYour reply will be parsed by a program: reply with the JSON only.' }]
+        }, { signal: opts.signal });
+      } catch (e) {
+        if (opts.signal && opts.signal.aborted) throw { code: 'cancelled' };
+        if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) throw { code: 'bad_key' };
+        if (e instanceof Anthropic.RateLimitError) throw { code: 'rate_limited' };
+        if (e instanceof Anthropic.BadRequestError) throw { code: 'invalid_request' };
+        throw { code: 'upstream_error' };
+      }
+      if (res.stop_reason === 'refusal') throw { code: 'refused' };
+      return parseLooseJSON(res.content.filter(b => b.type === 'text').map(b => b.text).join(''));
+    }
+  };
+}
+
+/* Built-in aisle and store picks, used when Claude isn't available. */
+const SPECIALTY = /vanilla bean|almond flour|bread flour|cake flour|pastry flour|sprinkles|food colou?ring|gel colou?r|cocoa|espresso powder|extract|yeast|meringue powder|candy melts|cream of tartar|xanthan|pearl sugar|sanding sugar|corn syrup/;
+const BULK = /flour|sugar|butter|\beggs?\b|\boil\b|rice|\boats?\b|chocolate chip|coffee/;
+const FRESH = ['Produce', 'Meat & Fish', 'Dairy & Eggs', 'Bread & Bakery', 'Frozen'];
+const AISLE_TIP = {
+  Produce: 'Produce section, usually near the entrance.', 'Bread & Bakery': 'Bakery counter or the bread aisle.', 'Meat & Fish': 'Meat and seafood counter, usually along the back.',
+  'Dairy & Eggs': 'Refrigerated dairy case.', Frozen: 'Frozen aisles.', Baking: 'Baking aisle, near the flour and sugar.', 'Spices & Herbs': 'Spice aisle. Bulk bins are cheaper for small amounts.',
+  'Canned & Jarred': 'Center aisles with canned goods and condiments.', 'Grains & Pasta': 'Pasta and rice aisle.', 'Snacks & Sweets': 'Snack aisle. Baking nuts are often in the baking aisle instead.',
+  Drinks: 'Beverage aisle.', Household: 'Paper goods and kitchen supplies aisle.', Other: ''
+};
+function localWhere(it, inStore, online) {
+  const n = cleanName(it.name).toLowerCase();
+  const cat = it.category && it.category !== 'Other' ? it.category : guessCat(n);
+  const pick = (list, prefs) => {
+    const usable = list.filter(s => s !== 'Compare prices');
+    const out = prefs.filter(p => usable.includes(p));
+    for (const s of usable) if (!out.includes(s)) out.push(s);
+    return out.slice(0, 2);
+  };
+  let sP, oP, tip = AISLE_TIP[cat] || '';
+  if (SPECIALTY.test(n)) { sP = ['Target', 'Whole Foods', 'Walmart', 'Kroger', 'Hy-Vee']; oP = ['Amazon', 'Target', 'Walmart']; tip = 'Specialty baking item: try the baking aisle, or order online if your store is out.'; }
+  else if (FRESH.includes(cat)) { sP = ['Aldi', "Trader Joe's", 'Hy-Vee', 'Kroger', 'Walmart', 'Whole Foods']; oP = ['Instacart', 'Walmart', 'Whole Foods', 'Kroger']; }
+  else if (cat === 'Household') { sP = ['Target', 'Walmart', 'Costco']; oP = ['Amazon', 'Target', 'Walmart']; }
+  else { sP = ['Aldi', 'Walmart', 'Target', 'Kroger', 'Hy-Vee']; oP = ['Walmart', 'Amazon', 'Instacart', 'Target']; }
+  if (BULK.test(n) && inStore.includes('Costco')) { sP = ['Costco', ...sP]; tip += ' Costco sells this in bulk if you go through a lot.'; }
+  return { aisle: cat, inStore: pick(inStore, sP), online: pick(online, oP), tip: tip.trim() };
+}
 
 function settings() {
   const s = data.settings.get('main') || {};
@@ -1404,7 +1478,6 @@ function storeUrl(st, name) { return st.url.replace('{q}', encodeURIComponent(na
 function renderShopping() {
   const s = settings();
   $$('#shop-mode button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === s.shopMode));
-  $('#s-where').hidden = !ai;
   const stores = enabledStores();
   const inStore = stores.filter(x => x.kind !== 'online'), online = stores.filter(x => x.kind !== 'store');
   $('#shop-mode-note').textContent = s.shopMode === 'store' ? `Grouped by aisle. Links check ${inStore.map(x => x.name).join(', ') || 'your stores'}.` : s.shopMode === 'online' ? `Links search ${online.map(x => x.name).join(', ') || 'your online stores'}.` : 'Store and online links for every item.';
@@ -1500,6 +1573,14 @@ async function findWhere(btn) {
   const s = settings(), stores = enabledStores();
   const inStore = stores.filter(x => x.kind !== 'online').map(x => x.name), online = stores.filter(x => x.kind !== 'store').map(x => x.name);
   const batch = open.slice(0, 60);
+  const applyLocal = () => {
+    batch.forEach(it => { const w = localWhere(it, inStore, online); put('shopping', { ...it, category: w.aisle, where: { inStore: w.inStore, online: w.online, tip: w.tip } }); });
+  };
+  if (!ai) {
+    applyLocal();
+    toast(IN_CLAUDE ? 'Added aisles and store picks' : 'Added aisles and store picks. Add an API key in Settings for smarter picks from Claude.');
+    return;
+  }
   btn.disabled = true; const label = btn.innerHTML; btn.innerHTML = `${I.spark}Looking things up…`;
   try {
     const res = await ai.json(`You help a home cook in the US plan a grocery run. For each item below, say which aisle it is usually in and which of the shopper's stores are the best bet for it.
@@ -1517,8 +1598,12 @@ ${batch.map((x, i) => `${i + 1}. ${cleanName(x.name)}${x.qty ? ` (${qtyUnitText(
       const o = res[i]; if (!o || typeof o !== 'object') return;
       put('shopping', { ...it, category: CATS.includes(o.aisle) ? o.aisle : it.category, where: { inStore: (o.inStore || []).map(String).filter(n => inStore.includes(n)), online: (o.online || []).map(String).filter(n => online.includes(n)), tip: String(o.tip || '').slice(0, 140) } });
     });
-    toast('Added aisles and store picks');
-  } catch (e) { toast(aiErr(e)); }
+    toast('Added aisles and store picks from Claude');
+  } catch (e) {
+    if (e && e.code === 'cancelled') return;
+    applyLocal();
+    toast(aiErr(e) + ' Used the built-in picks instead.');
+  }
   finally { btn.disabled = false; btn.innerHTML = label; }
 }
 function storesForm() {
@@ -1609,11 +1694,21 @@ function settingsForm() {
         <div class="head-actions"><button type="button" class="btn sm" data-m="export">Export backup</button><label class="btn sm" style="cursor:pointer">Import backup<input id="imp" type="file" accept=".json,application/json" hidden></label></div>
         <small>The backup is one .json file with your recipes, pantry, shopping list and plan. Importing adds to what you have and updates matching items.</small>
         <textarea id="exp-out" rows="4" hidden readonly></textarea></div>
-      <div class="field"><span>Stores</span><div><button type="button" class="btn sm" data-m="stores">Choose stores</button></div></div>`,
+      <div class="field"><span>Stores</span><div><button type="button" class="btn sm" data-m="stores">Choose stores</button></div></div>
+      ${IN_CLAUDE ? '' : `<div class="field"><span>Claude on this site</span>
+        <p class="storenote ${ai ? '' : 'local'}"><i></i>${ai ? 'On. “Find where to buy” and “Tidy it with Claude” use your API key.' : 'Off. “Find where to buy” uses built-in suggestions.'}</p>
+        <div class="quickadd"><input id="api-key" type="password" placeholder="${ai ? 'Key saved. Paste a new one to replace it.' : 'Paste your Anthropic API key (sk-ant-…)'}" autocomplete="off" aria-label="Anthropic API key"><button type="button" class="btn sm" data-m="savekey">Save</button>${ai ? '<button type="button" class="btn sm danger" data-m="rmkey">Remove</button>' : ''}</div>
+        <small>Optional. Get a key at console.anthropic.com. Calls are billed to your Anthropic account, usually a few cents each. The key is stored only in this browser and is never added to the GitHub repository.</small></div>`}`,
     foot: `<button type="button" class="btn primary" data-close>Done</button>`
   });
   m.on('look', b => { setLook(b.dataset.v); $$('[data-m="look"]', m.el).forEach(x => x.setAttribute('aria-pressed', x === b)); });
   m.on('stores', () => { m.close(); storesForm(); });
+  m.on('savekey', () => {
+    const v = $('#api-key', m.el).value.trim();
+    if (!/^sk-ant-/.test(v)) { toast('That does not look like an Anthropic API key. It starts with sk-ant-'); return; }
+    LS.set('lw:apikey', v); ai = keyAi(); m.close(); render(); toast('Claude is on for this browser');
+  });
+  m.on('rmkey', () => { try { localStorage.removeItem('lw:apikey'); } catch {} ai = null; m.close(); render(); toast('API key removed from this browser'); });
   m.on('export', async () => {
     const dump = { app: 'little-whisk', version: 1, exported: new Date().toISOString() };
     COLS.forEach(c => { dump[c] = [...data[c].values()]; });
@@ -1697,7 +1792,9 @@ function toast(msg) {
 function aiErr(e) {
   const c = e && e.code;
   if (c === 'not_granted' || c === 'sampling_disabled' || c === 'not_declared') return 'Claude is not allowed on this page right now. You can still fill things in by hand.';
+  if (c === 'bad_key') return 'Your Anthropic API key was not accepted. Check it in Settings.';
   if (c === 'rate_limited') return 'Claude is busy for you right now. Try again in a few minutes.';
+  if (c === 'refused') return 'Claude declined that request.';
   if (c === 'cancelled') return 'Stopped.';
   if (c === 'invalid_json') return 'The answer came back garbled. Try again.';
   if (c === 'prompt_too_large') return 'That is too much text at once. Paste just the recipe.';
@@ -1846,7 +1943,7 @@ setLook(LS.get('lw:look', 'pastel') === 'classic' ? 'classic' : 'pastel');
 route();
 (async () => {
   const c = window.claude;
-  if (!c || typeof c.use !== 'function') { startLocal(); return; }
+  if (!c || typeof c.use !== 'function') { startLocal(); ai = keyAi(); render(); return; }
   c.use('sample').then(s => { ai = s; render(); }).catch(() => {});
   c.use('downloads').then(d => { downloads = d; }).catch(() => {});
   let d = null;
