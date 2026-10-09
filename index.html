@@ -135,6 +135,15 @@ const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+// One-time move of anything saved under the old Little Whisk labels (lw:...) to crumb:...
+try {
+  for (const k of Object.keys(localStorage)) {
+    if (!k.startsWith('lw:')) continue;
+    const nk = 'crumb:' + k.slice(3);
+    if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k));
+    localStorage.removeItem(k);
+  }
+} catch {}
 const clone = o => JSON.parse(JSON.stringify(o));
 const hashN = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
 const tileOf = s => 'tile-' + (hashN(s) % 4 + 1);
@@ -393,10 +402,10 @@ async function flush(key) {
     if (pending.has(key)) flush(key);
   }
 }
-function saveLocal(col) { LS.set('lw:data:' + col, [...data[col].values()]); }
+function saveLocal(col) { LS.set('crumb:data:' + col, [...data[col].values()]); }
 function startLocal() {
   mode = 'local';
-  for (const c of COLS) { data[c] = new Map((LS.get('lw:data:' + c, []) || []).map(o => [o.id, o])); loaded.add(c); }
+  for (const c of COLS) { data[c] = new Map((LS.get('crumb:data:' + c, []) || []).map(o => [o.id, o])); loaded.add(c); }
   for (const [key, body] of pending) { const [c] = key.split('/'); saveLocal(c); }
   pending.clear();
   render();
@@ -450,7 +459,7 @@ function parseLooseJSON(text) {
   throw { code: 'invalid_json' };
 }
 function keyAi() {
-  const key = LS.get('lw:apikey', '');
+  const key = LS.get('crumb:apikey', '');
   if (!key) return null;
   return {
     viaKey: true,
@@ -788,8 +797,8 @@ function timeLine(r) { return [r.prep && `Prep ${r.prep}`, r.cook && `Cook ${r.c
 
 /* ================= RECIPE detail ================= */
 function sc(id) { return state.scale[id] || (state.scale[id] = { f: 1 }); }
-function chk(id) { return LS.get('lw:chk:' + id, { i: [], s: [] }); }
-function setChk(id, v) { LS.set('lw:chk:' + id, v); }
+function chk(id) { return LS.get('crumb:chk:' + id, { i: [], s: [] }); }
+function setChk(id, v) { LS.set('crumb:chk:' + id, v); }
 const TIMER_RX = /(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*(minutes?|mins?|hours?|hrs?)\b/gi;
 function stepHTML(text) {
   return esc(text).replace(TIMER_RX, (all, a, b, u) => {
@@ -1013,7 +1022,7 @@ ${t.slice(0, 24000)}
   m.on('rfkey', () => {
     const v = E('rf-key').value.trim();
     if (!/^sk-ant-/.test(v)) { toast('That does not look like an Anthropic API key. It starts with sk-ant-'); return; }
-    LS.set('lw:apikey', v); ai = keyAi();
+    LS.set('crumb:apikey', v); ai = keyAi();
     $('[data-m="tidy"]', m.el).click();
   });
   m.onClose(() => ctl && ctl.abort());
@@ -1394,9 +1403,9 @@ function settingsForm() {
   m.on('savekey', () => {
     const v = $('#api-key', m.el).value.trim();
     if (!/^sk-ant-/.test(v)) { toast('That does not look like an Anthropic API key. It starts with sk-ant-'); return; }
-    LS.set('lw:apikey', v); ai = keyAi(); m.close(); render(); toast('Claude is on for this browser');
+    LS.set('crumb:apikey', v); ai = keyAi(); m.close(); render(); toast('Claude is on for this browser');
   });
-  m.on('rmkey', () => { try { localStorage.removeItem('lw:apikey'); } catch {} ai = null; m.close(); render(); toast('API key removed from this browser'); });
+  m.on('rmkey', () => { try { localStorage.removeItem('crumb:apikey'); } catch {} ai = null; m.close(); render(); toast('API key removed from this browser'); });
   m.on('export', async () => {
     const dump = { app: 'crumb', version: 1, exported: new Date().toISOString() };
     COLS.forEach(c => { dump[c] = [...data[c].values()]; });
@@ -1431,7 +1440,7 @@ async function clearExamples() {
 function setLook(v) {
   document.documentElement.dataset.look = v;
   $$('.look button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
-  LS.set('lw:look', v);
+  LS.set('crumb:look', v);
 }
 
 /* ================= modal / toast / confirm ================= */
@@ -1627,7 +1636,7 @@ function route() {
 }
 window.addEventListener('hashchange', route);
 
-setLook(LS.get('lw:look', 'pastel') === 'classic' ? 'classic' : 'pastel');
+setLook(LS.get('crumb:look', 'pastel') === 'classic' ? 'classic' : 'pastel');
 route();
 (async () => {
   const c = window.claude;
