@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Little Whisk</title>
+<title>Crumb</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap">
@@ -9,9 +9,9 @@
 
 <header class="nav">
   <div class="nav-in">
-    <a class="brand" href="#recipes" aria-label="Little Whisk home">
-      <span class="mark"><svg class="i" viewBox="0 0 24 24"><path d="M12 21v-6"/><path d="M12 15c-3.6 0-5.5-3.6-5.5-6.5a5.5 5.5 0 0 1 11 0c0 2.9-1.9 6.5-5.5 6.5z"/><path d="M12 15c-1.3 0-2.6-3-2.6-6.5S10.7 3 12 3s2.6 2 2.6 5.5S13.3 15 12 15z"/></svg></span>
-      <span>Little Whisk</span>
+    <a class="brand" href="#recipes" aria-label="Crumb home">
+      <span class="mark"><svg class="i" viewBox="0 0 24 24"><path d="M9.6 7.4c1.4-1.3 3.4-1.3 4.8 0L13.4 15h-2.8z"/><path d="M9.6 7.4C7.6 7.6 6 9 5.4 11l5.2 4"/><path d="M14.4 7.4c2 .2 3.6 1.6 4.2 3.6l-5.2 4"/><path d="M5.4 11c-1.6.6-2.5 2.2-2.2 4.2L7.8 14"/><path d="M18.6 11c1.6.6 2.5 2.2 2.2 4.2L16.2 14"/></svg></span>
+      <span>Crumb</span>
     </a>
     <nav class="tabs" aria-label="Sections">
       <a class="tab" href="#pantry" data-view="pantry"><svg class="i" viewBox="0 0 24 24"><path d="M8 3h8"/><path d="M7 6h10"/><path d="M7 6v12a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3V6"/><path d="M10 12h4"/></svg><span>Pantry</span><span class="badge" id="b-pantry" hidden></span></a>
@@ -659,7 +659,7 @@ function renderPantry() {
     (state.pantryStatus === 'All' || pantryStatus(p) === state.pantryStatus) &&
     (!q || (p.name + ' ' + (p.category || '') + ' ' + (p.note || '')).toLowerCase().includes(q)));
   if (!all.length) {
-    $('#pantry-list').innerHTML = emptyHTML(I.jar, 'Your pantry is empty', 'Add what you keep on hand. Set a “running low” amount and Little Whisk will flag it and add it to your shopping list.', `<button type="button" class="btn primary" data-act="p-new">Add your first item</button>`);
+    $('#pantry-list').innerHTML = emptyHTML(I.jar, 'Your pantry is empty', 'Add what you keep on hand. Set a “running low” amount and Crumb will flag it and add it to your shopping list.', `<button type="button" class="btn primary" data-act="p-new">Add your first item</button>`);
     return;
   }
   if (!items.length) { $('#pantry-list').innerHTML = `<div class="empty"><p>Nothing matches those filters.</p></div>`; return; }
@@ -757,7 +757,7 @@ function renderRecipes() {
   $$('[data-act="r-onlyfav"]').forEach(b => b.setAttribute('aria-pressed', state.onlyFav));
   $$('[data-act="r-canmake"]').forEach(b => b.setAttribute('aria-pressed', state.canMake));
   if (!all.length) {
-    grid.innerHTML = emptyHTML(I.book, 'No recipes yet', 'Type one in, or paste a whole recipe from anywhere and Little Whisk will sort it into ingredients and steps.', `<button type="button" class="btn primary" data-act="r-new">Add a recipe</button>`);
+    grid.innerHTML = emptyHTML(I.book, 'No recipes yet', 'Type one in, or paste a whole recipe from anywhere and Crumb will sort it into ingredients and steps.', `<button type="button" class="btn primary" data-act="r-new">Add a recipe</button>`);
     return;
   }
   const words = state.recipeQ.toLowerCase().split(/\s+/).filter(Boolean);
@@ -929,7 +929,7 @@ function recipeForm(r, focus) {
       <details class="paste" ${isNew ? 'open' : ''}>
         <summary>Paste a whole recipe</summary>
         <div class="paste-body">
-          <textarea id="rf-paste" rows="5" placeholder="Copy a recipe from a website, email or note and paste it here. Little Whisk will split it into title, ingredients and steps."></textarea>
+          <textarea id="rf-paste" rows="5" placeholder="Copy a recipe from a website, email or note and paste it here. Crumb will split it into title, ingredients and steps."></textarea>
           <div class="paste-actions">
             <button type="button" class="btn" data-m="split">Fill in the form</button>
             <button type="button" class="btn" data-m="tidy">${I.spark}Tidy it with Claude</button>
@@ -1145,7 +1145,7 @@ function madeIt(r, f, entry) {
   rows.push(...seen.values());
   const m = openModal({
     title: 'Use ingredients from your pantry',
-    body: rows.length ? `<p class="muted">Little Whisk will take these amounts off your pantry. Untick anything you didn't use.</p>
+    body: rows.length ? `<p class="muted">Crumb will take these amounts off your pantry. Untick anything you didn't use.</p>
       <div>${rows.map((x, i) => { const left = Math.max(0, (+x.p.qty || 0) - x.use); return `<label class="ded"><input type="checkbox" value="${i}" checked><span>${esc(x.p.name)}</span><span class="arrow">${esc(qtyUnitText(+x.p.qty || 0, x.p.unit) || '0')} → ${esc(qtyUnitText(left, x.p.unit) || '0')}</span></label>`; }).join('')}</div>`
       : `<p class="muted">None of this recipe's ingredients are tracked in your pantry, so there is nothing to subtract.</p>`,
     foot: `<button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn primary" data-m="ok">${rows.length ? 'Update pantry' : 'Done'}</button>`
@@ -1353,7 +1353,7 @@ function renderPlan() {
     .map(e => { const r = data.recipes.get(e.recipeId); return { r, f: r.servings ? (+e.servings || +r.servings) / +r.servings : 1 }; });
   const box = $('#plan-needs');
   if (!list.length) {
-    box.innerHTML = `<div class="panel-h"><h2>Groceries for this week</h2></div><p class="muted">Plan a few recipes and Little Whisk will total their ingredients, check them against your pantry, and add what's missing to your shopping list.</p>`;
+    box.innerHTML = `<div class="panel-h"><h2>Groceries for this week</h2></div><p class="muted">Plan a few recipes and Crumb will total their ingredients, check them against your pantry, and add what's missing to your shopping list.</p>`;
     return;
   }
   const needs = computeNeeds(list);
@@ -1398,10 +1398,10 @@ function settingsForm() {
   });
   m.on('rmkey', () => { try { localStorage.removeItem('lw:apikey'); } catch {} ai = null; m.close(); render(); toast('API key removed from this browser'); });
   m.on('export', async () => {
-    const dump = { app: 'little-whisk', version: 1, exported: new Date().toISOString() };
+    const dump = { app: 'crumb', version: 1, exported: new Date().toISOString() };
     COLS.forEach(c => { dump[c] = [...data[c].values()]; });
     const json = JSON.stringify(dump, null, 2);
-    const name = `little-whisk-backup-${ymd(new Date())}.json`;
+    const name = `crumb-backup-${ymd(new Date())}.json`;
     if (downloads) {
       try { await downloads.save({ filename: name, data: json }); toast('Backup saved'); return; }
       catch (e) { if (e && e.code === 'declined') return; }
@@ -1413,12 +1413,12 @@ function settingsForm() {
     const file = e.target.files[0]; if (!file) return;
     try {
       const dump = JSON.parse(await file.text());
-      if (!dump || dump.app !== 'little-whisk') throw new Error('x');
+      if (!dump || !['crumb', 'little-whisk'].includes(dump.app)) throw new Error('x');
       const n = COLS.reduce((t, c) => t + (Array.isArray(dump[c]) ? dump[c].length : 0), 0);
       if (!(await confirmBox(`Import ${n} items from ${file.name}? Matching items are replaced with the backup's version.`, 'Import'))) return;
       COLS.forEach(c => (dump[c] || []).forEach(o => { if (o && o.id) put(c, o); }));
       toast('Backup imported');
-    } catch { toast('That file is not a Little Whisk backup'); }
+    } catch { toast('That file is not a Crumb backup'); }
   });
 }
 async function clearExamples() {

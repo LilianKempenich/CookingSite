@@ -1,4 +1,4 @@
-/* Little Whisk styles */
+/* Crumb styles */
 /* Layout: a sticky pill nav over one centered column. Each view is a header, a toolbar, then a list.
    Recipe detail is ingredients (left, sticky) beside the method (right). Two light looks: Classic and Pastel. */
 :root {

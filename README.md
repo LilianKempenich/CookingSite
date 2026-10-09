@@ -1,4 +1,4 @@
-# Little Whisk
+# Crumb
 
 A personal baking and cooking site: pantry tracker, recipe box, shopping list and meal planner, all in one HTML file (`index.html`).
 
