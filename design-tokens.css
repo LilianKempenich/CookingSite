@@ -1,0 +1,319 @@
+/* ==========================================================================
+   Design tokens — baking & cooking site
+   Two themes: Classic (default) and Pastel.
+   Switch themes by setting data-theme on <html>:
+     <html data-theme="classic">  or  <html data-theme="pastel">
+
+   Part 1 = tokens (variables). Safe to drop in; changes nothing by itself.
+   Part 2 = reference styles. Map these onto the site's EXISTING classes —
+            do not add new markup to use them.
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&display=swap");
+
+
+/* ==========================================================================
+   PART 1 — TOKENS
+   ========================================================================== */
+
+/* ---------- Shared (both themes) ---------- */
+:root {
+  /* Fonts */
+  --font-display: "Fredoka", ui-rounded, system-ui, sans-serif;  /* headings, logo, card titles */
+  --font-body: "Atkinson Hyperlegible Next", ui-rounded, system-ui, sans-serif;     /* everything else */
+
+  /* Type scale */
+  --text-page-title: 44px;     /* h1 on list pages */
+  --text-recipe-title: 46px;   /* h1 on a recipe page */
+  --text-section: 24px;        /* h2: Ingredients, Instructions, Notes */
+  --text-card-title: 20px;     /* recipe card titles */
+  --text-lg: 17px;             /* step text, search input */
+  --text-base: 16px;
+  --text-sm: 14px;             /* chips, buttons in groups, meta */
+  --text-xs: 13px;             /* captions, hints */
+  --text-tag: 12px;            /* tags, badges, section labels */
+  --leading-body: 1.5;
+  --leading-steps: 1.55;
+  --leading-heading: 1.1;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --label-tracking: 0.08em;    /* uppercase group labels like "CRUST" */
+
+  /* Corner radii */
+  --radius-pill: 999px;        /* buttons, chips, search bar, nav links */
+  --radius-tile: 16px;         /* big recipe image tile */
+  --radius-panel: 14px;        /* main content panels */
+  --radius-card: 14px;         /* recipe cards, day cards */
+  --radius-field: 16px;        /* text inputs, textareas */
+  --radius-sm: 14px;           /* small inputs, icon buttons */
+  --radius-xs: 12px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 36px;
+
+  /* Layout */
+  --page-max-width: 1180px;
+  --page-gutter: 24px;         /* side padding */
+  --page-top: 36px;
+  --nav-blur: 12px;
+
+  /* Sizes */
+  --touch-target: 44px;        /* minimum for any tap target */
+  --button-height: 44px;
+  --chip-height: 36px;
+  --input-height: 48px;
+  --search-height: 56px;
+}
+
+/* ---------- Classic theme (default) ---------- */
+:root,
+[data-theme="classic"] {
+  --color-bg: #FAFAFB;              /* page background: clean neutral off-white */
+  --color-surface: #FFFFFF;         /* cards, panels, inputs */
+  --color-ink: #2B2724;             /* main text */
+  --color-muted: #69625A;           /* secondary text */
+  --color-line: #EAE4DC;            /* borders, dividers */
+  --color-soft: #F3EEE8;            /* subtle fills: tags, toggles */
+
+  --color-accent: #7A4FC0;          /* primary buttons, checkboxes, selected chips */
+  --color-accent-ink: #FFFFFF;      /* text on accent */
+  --color-accent-soft: #E2EDE6;     /* active nav tab, highlight panels (still green — see note) */
+  --color-accent-strong: #2C5241;   /* text on accent-soft (still green — see note) */
+  /* NOTE: accent-soft and accent-strong are still the original green.
+     For an all-purple Classic, swap them to #ECE1FB and #5B3699. */
+
+  --color-warn: #A9531C;            /* "Need" / out of stock */
+  --color-warn-soft: #F9E8DA;       /* "Low" stock background */
+  --color-note: #FBF3D9;            /* Notes panel */
+  --color-sparkle: #E9B8C9;
+
+  --color-nav-bg: rgba(251, 250, 253, 0.9);
+  --color-icon: #4E443B;
+  --shadow: 0 1px 2px rgba(43, 39, 36, 0.05), 0 8px 24px rgba(43, 39, 36, 0.05);
+
+  /* Recipe tile tints */
+  --tint-1: #F5E4D6;
+  --tint-2: #E2ECE3;
+  --tint-3: #FAEFC8;
+  --tint-4: #E3EAF3;
+  --tint-5: #EFE3EC;
+}
+
+/* ---------- Pastel theme ---------- */
+[data-theme="pastel"] {
+  --color-bg: #F8F3FD;
+  --color-surface: #FFFFFF;
+  --color-ink: #3A2D52;
+  --color-muted: #6A5D84;
+  --color-line: #E9DEF6;
+  --color-soft: #F2EAFB;
+
+  --color-accent: #7A4FC0;
+  --color-accent-ink: #FFFFFF;
+  --color-accent-soft: #ECE1FB;
+  --color-accent-strong: #5B3699;
+
+  --color-warn: #AE3F74;
+  --color-warn-soft: #FCE2EE;
+  --color-note: #FDE6F0;
+  --color-sparkle: #F2A9C9;
+
+  --color-nav-bg: rgba(248, 243, 253, 0.9);
+  --color-icon: #5A4880;
+  --shadow: 0 1px 2px rgba(91, 54, 153, 0.06), 0 10px 28px rgba(122, 79, 192, 0.08);
+
+  --tint-1: #FBDCE9;   /* pink */
+  --tint-2: #DCEAFB;   /* blue */
+  --tint-3: #E9DCFB;   /* lavender */
+  --tint-4: #DDF2EE;   /* mint */
+  --tint-5: #FDE7DC;   /* peach */
+}
+
+
+/* ==========================================================================
+   PART 2 — REFERENCE STYLES
+   Example selectors only. Apply these looks to the site's existing
+   elements/classes; don't rename or restructure markup to match.
+   ========================================================================== */
+
+/* Page */
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  line-height: var(--leading-heading);
+  margin: 0;
+}
+h1 { font-size: var(--text-page-title); font-weight: var(--weight-semibold); letter-spacing: -0.01em; }
+h2 { font-size: var(--text-section); font-weight: var(--weight-medium); }
+
+/* Page container */
+.ref-container {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--page-top) var(--page-gutter) 96px;
+  box-sizing: border-box;
+}
+
+/* Sticky navbar */
+.ref-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--color-nav-bg);
+  backdrop-filter: blur(var(--nav-blur));
+  -webkit-backdrop-filter: blur(var(--nav-blur));
+  border-bottom: 1px solid var(--color-line);
+}
+.ref-nav-link {
+  height: var(--button-height);
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: var(--weight-medium);
+}
+.ref-nav-link[aria-current="page"],
+.ref-nav-link.active {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  font-weight: var(--weight-bold);
+}
+
+/* Buttons */
+.ref-btn-primary {
+  height: var(--button-height);
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+.ref-btn-secondary {
+  height: var(--button-height);
+  padding: 0 18px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+/* Chips / tag filters */
+.ref-chip {
+  height: var(--chip-height);
+  padding: 0 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+.ref-chip[aria-pressed="true"],
+.ref-chip.selected {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+.ref-tag {
+  font-size: var(--text-tag);
+  font-weight: var(--weight-semibold);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-soft);
+  color: var(--color-muted);
+}
+
+/* Cards and panels */
+.ref-card {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.ref-panel {
+  padding: 22px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+.ref-notes {
+  padding: 22px;
+  border-radius: var(--radius-panel);
+  background: var(--color-note);
+}
+
+/* Inputs */
+.ref-input,
+.ref-textarea,
+.ref-select {
+  box-sizing: border-box;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font: inherit;
+}
+.ref-input, .ref-select { height: var(--input-height); padding: 0 14px; }
+.ref-textarea { padding: 14px; line-height: 1.6; }
+.ref-search {
+  height: var(--search-height);
+  padding: 0 20px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  font-size: var(--text-lg);
+}
+
+/* Checkboxes (ingredients, shopping list) */
+input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--color-accent);
+}
+.ref-checked-text {
+  text-decoration: line-through;
+  color: var(--color-muted);
+}
+
+/* Stock status badges */
+.ref-badge-need { background: var(--color-warn);      color: #FFFFFF; }
+.ref-badge-low  { background: var(--color-warn-soft); color: var(--color-warn); }
+.ref-badge-have { background: var(--color-soft);      color: var(--color-muted); }
+
+/* Group labels, e.g. "CRUST", "FILLING" */
+.ref-group-label {
+  font-size: var(--text-tag);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
