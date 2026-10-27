@@ -103,7 +103,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 96px; }
 .btn.primary .spark { color: inherit; }
 
 .search { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 0 14px; min-width: 0; flex: 1 1 240px; max-width: 420px; color: var(--muted); }
-.search input { border: 0; background: transparent; padding: 9px 0; outline: none; flex: 1; min-width: 0; color: var(--ink); }
+.search input, .search input[type="search"] { border: 0; border-radius: 0; background: transparent; padding: 9px 0; outline: none; flex: 1; min-width: 0; color: var(--ink); }
 .search:focus-within { border-color: var(--accent); }
 
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -339,3 +339,14 @@ body.cook .step { padding-block: 14px; }
 .storenote.local i { background: var(--low); }
 .loading { padding: 40px 16px; text-align: center; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* drink ways (Hot, Iced, Blended…) */
+.ways-l { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+.ways-l span { border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; font-size: 0.75rem; font-weight: 700; color: var(--accent); background: var(--surface); }
+.waypick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.waypick .lab { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.way-box { display: flex; flex-direction: column; gap: 12px; }
+.way-box.on { background: var(--surface-2); border-radius: 14px; padding: 14px 16px; }
+.way-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.drink-types { align-self: flex-start; }
+.drink-types .c { font-variant-numeric: tabular-nums; opacity: 0.7; font-weight: 600; margin-left: 2px; }

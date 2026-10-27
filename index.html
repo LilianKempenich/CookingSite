@@ -73,6 +73,7 @@
           <option value="pantry">Most in pantry</option>
         </select>
       </div>
+      <div class="seg drink-types" id="drink-types" role="group" aria-label="Kind of drink" hidden></div>
       <div class="chips" id="recipe-tags"></div>
       <div id="recipe-grid"></div>
     </div>
@@ -148,17 +149,39 @@ try {
 const clone = o => JSON.parse(JSON.stringify(o));
 const hashN = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
 const tileOf = s => 'tile-' + (hashN(s) % 5 + 1);
-// Food pictures from the Cooking Site Design (64x64 line art); the glass is new, for drinks.
+// Food pictures from the Cooking Site Design (64x64 line art); the drink pictures are drawn to match.
 const FOOD_SVG = {
   cookie: '<circle cx="32" cy="32" r="20"/><circle cx="25" cy="26" r="2.2" fill="currentColor"/><circle cx="38" cy="24" r="2.2" fill="currentColor"/><circle cx="34" cy="36" r="2.2" fill="currentColor"/><circle cx="24" cy="39" r="2.2" fill="currentColor"/><circle cx="42" cy="40" r="2" fill="currentColor"/>',
   lemon: '<circle cx="32" cy="32" r="20"/><circle cx="32" cy="32" r="15"/><path d="M32 17v30M19 24.5l26 15M19 39.5l26-15"/>',
   bread: '<path d="M12 30c0-7 6-12 13-12h14c7 0 13 5 13 12v14a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4z"/><path d="M24 26l4 6M32 24l4 6M40 26l4 6"/>',
   bowl: '<path d="M10 32h44c0 11-10 18-22 18S10 43 10 32z"/><path d="M24 25c0-3 3-3 3-6M32 25c0-3 3-3 3-6M40 25c0-3 3-3 3-6"/>',
   muffin: '<path d="M16 34c0-9 7-16 16-16s16 7 16 16z"/><path d="M18 34l4 16h20l4-16"/><path d="M28 34v16M36 34v16"/>',
-  drink: '<path d="M20 14h24l-3.2 33.4a4 4 0 0 1-4 3.6H27.2a4 4 0 0 1-4-3.6z"/><path d="M21.6 28h20.8"/><path d="M36 14l5-7h6"/>'
+  drink: '<path d="M20 14h24l-3.2 33.4a4 4 0 0 1-4 3.6H27.2a4 4 0 0 1-4-3.6z"/><path d="M21.6 28h20.8"/><path d="M36 14l5-7h6"/>',
+  mug: '<path d="M14 24h28v18a8 8 0 0 1-8 8H22a8 8 0 0 1-8-8z"/><path d="M42 28h4a6 6 0 0 1 0 12h-4"/><path d="M22 18c0-3 3-3 3-6M30 18c0-3 3-3 3-6"/><path d="M10 55h40"/>',
+  smoothie: '<path d="M20 26h24l-3 24.5a4 4 0 0 1-4 3.5H27a4 4 0 0 1-4-3.5z"/><path d="M18 26c0-6.5 6.3-11 14-11s14 4.5 14 11z"/><path d="M35 15l4-10h5"/><path d="M22.4 37h19.2"/>',
+  pitcher: '<path d="M20 12h22v38a4 4 0 0 1-4 4H24a4 4 0 0 1-4-4z"/><path d="M42 20h4a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5h-4"/><path d="M20 12l-6-4"/><path d="M20 26h22"/><circle cx="27" cy="36" r="2.5"/><circle cx="35" cy="42" r="2.5"/>',
+  shaker: '<path d="M28 5h8v6h-8z"/><path d="M24 11h16l2 10H22z"/><path d="M22 21h20l-3.2 30.5a4 4 0 0 1-4 3.5h-5.6a4 4 0 0 1-4-3.5z"/><path d="M23.5 33h17"/>',
+  margarita: '<path d="M10 14h44c-2 12-10 18-22 18S12 26 10 14z"/><path d="M32 32v16"/><path d="M22 52h20"/><path d="M38 14a8 8 0 0 1 14-6"/><path d="M45 8l-3 6"/>',
+  wine: '<path d="M20 8h24c0 14-4.5 22-12 22S20 22 20 8z"/><path d="M32 30v18"/><path d="M22 52h20"/><path d="M21 17h22"/>'
 };
+// A drink's picture follows its glass first, then what kind of drink it is.
+function drinkKind(r) {
+  const g = (r.serveIn || '').toLowerCase();
+  const s = ((r.title || '') + ' ' + (r.tags || []).join(' ') + ' ' + (r.wayName || '')).toLowerCase();
+  if (/mug|cup|thermos/.test(g)) return 'mug';
+  if (/pitcher|carafe|jug|punch bowl/.test(g)) return 'pitcher';
+  if (/margarita|coupe/.test(g)) return 'margarita';
+  if (/wine|flute|champagne/.test(g)) return 'wine';
+  if (/margarita|daiquiri/.test(s)) return 'margarita';
+  if (/wine|sangria|spritz|champagne|prosecco|mimosa/.test(s)) return 'wine';
+  if (/smoothie|shake|frapp|slush|blended|frozen/.test(s)) return 'smoothie';
+  if (/cocktail|martini|shaken|sour\b/.test(s)) return 'shaker';
+  if (/\bhot\b|cocoa|hot chocolate|tea\b|chai|cider|toddy/.test(s) && !/iced|cold/.test(s)) return 'mug';
+  if (/lemonade|punch|pitcher|agua fresca/.test(s)) return 'pitcher';
+  return 'drink';
+}
 function foodKind(r) {
-  if (r.kind === 'drink') return 'drink';
+  if (r.kind === 'drink') return drinkKind(r);
   const s = ((r.title || '') + ' ' + (r.tags || []).join(' ')).toLowerCase();
   if (/cookie/.test(s)) return 'cookie';
   if (/lemon|citrus|lime/.test(s)) return 'lemon';
@@ -209,7 +232,7 @@ const CAT_RX = [
 ];
 const guessCat = name => { const n = String(name).toLowerCase(); for (const [c, rx] of CAT_RX) if (rx.test(n)) return c; return 'Other'; };
 const locFor = cat => ({ 'Dairy & Eggs': 'Fridge', 'Meat & Fish': 'Fridge', Produce: 'Fridge', Frozen: 'Freezer', 'Spices & Herbs': 'Spice rack', 'Bread & Bakery': 'Counter' }[cat] || 'Pantry');
-const SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Baking'];
+const SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Baking', 'Drinks'];
 
 const STORES = [
   { id: 'walmart', name: 'Walmart', kind: 'both', url: 'https://www.walmart.com/search?q={q}' },
@@ -235,7 +258,8 @@ const PANS = [
 
 /* ================= units & ingredient parsing ================= */
 const UNITS = {
-  tsp: ['v', 1], tbsp: ['v', 3], cup: ['v', 48], 'fl oz': ['v', 6], ml: ['v', 0.202884], l: ['v', 202.884], pint: ['v', 96], quart: ['v', 192], gallon: ['v', 768],
+  tsp: ['v', 1], tbsp: ['v', 3], cup: ['v', 48], 'fl oz': ['v', 6], ml: ['v', 0.202884], cl: ['v', 2.02884], l: ['v', 202.884], pint: ['v', 96], quart: ['v', 192], gallon: ['v', 768],
+  shot: ['v', 9], jigger: ['v', 9],
   g: ['w', 1], kg: ['w', 1000], oz: ['w', 28.3495], lb: ['w', 453.592]
 };
 const UNIT_RX = [
@@ -248,6 +272,9 @@ const UNIT_RX = [
   ['kg', /^(kilograms?|kgs?)(?![a-z])\.?/i],
   ['g', /^(grams?|gr|g)(?![a-z])\.?/i],
   ['ml', /^(millilit(?:er|re)s?|ml)(?![a-z])\.?/i],
+  ['cl', /^(centilit(?:er|re)s?|cl)(?![a-z])\.?/i],
+  ['shot', /^shots?(?![a-z])/i], ['jigger', /^jiggers?(?![a-z])/i],
+  ['splash', /^splash(es)?(?![a-z])/i], ['drop', /^drops?(?![a-z])/i], ['part', /^parts?(?![a-z])/i], ['scoop', /^scoops?(?![a-z])/i],
   ['l', /^(lit(?:er|re)s?|l)(?![a-z])\.?/i],
   ['pint', /^(pints?|pt)(?![a-z])\.?/i], ['quart', /^(quarts?|qt)(?![a-z])\.?/i], ['gallon', /^(gallons?|gal)(?![a-z])\.?/i],
   ['pinch', /^pinch(es)?(?![a-z])/i], ['dash', /^dash(es)?(?![a-z])/i], ['clove', /^cloves?(?![a-z])/i],
@@ -255,7 +282,7 @@ const UNIT_RX = [
   ['slice', /^slices?(?![a-z])/i], ['bunch', /^bunch(es)?(?![a-z])/i], ['jar', /^jars?(?![a-z])/i], ['bag', /^bags?(?![a-z])/i],
   ['box', /^box(es)?(?![a-z])/i], ['head', /^heads?(?![a-z])/i], ['sprig', /^sprigs?(?![a-z])/i], ['dozen', /^dozen(?![a-z])/i]
 ];
-const PLURAL = { cup: 'cups', clove: 'cloves', can: 'cans', stick: 'sticks', package: 'packages', slice: 'slices', bunch: 'bunches', jar: 'jars', bag: 'bags', box: 'boxes', head: 'heads', sprig: 'sprigs', pinch: 'pinches', dash: 'dashes', pint: 'pints', quart: 'quarts', gallon: 'gallons' };
+const PLURAL = { cup: 'cups', clove: 'cloves', can: 'cans', stick: 'sticks', package: 'packages', slice: 'slices', bunch: 'bunches', jar: 'jars', bag: 'bags', box: 'boxes', head: 'heads', sprig: 'sprigs', pinch: 'pinches', dash: 'dashes', shot: 'shots', jigger: 'jiggers', splash: 'splashes', drop: 'drops', part: 'parts', scoop: 'scoops', pint: 'pints', quart: 'quarts', gallon: 'gallons' };
 const unitLabel = (u, q) => (q > 1 && PLURAL[u]) ? PLURAL[u] : u;
 const famOf = u => UNITS[u] ? UNITS[u][0] : null;
 const toBase = (q, u) => q * UNITS[u][1];
@@ -298,10 +325,13 @@ function parseLine(line) {
   return { header: false, raw, qty, qty2, unit, pre, name };
 }
 const parseCache = new Map();
-function parseIngredients(text) {
-  const key = String(text || '');
+// In drinks, a bare "oz" is a liquid ounce, so it scales and converts as fl oz.
+function parseIngredients(text, kind) {
+  const drink = kind === 'drink';
+  const key = (drink ? 'd:' : '') + String(text || '');
   if (parseCache.has(key)) return parseCache.get(key);
-  const out = key.split('\n').map(parseLine).filter(Boolean);
+  let out = String(text || '').split('\n').map(parseLine).filter(Boolean);
+  if (drink) out = out.map(it => it.unit === 'oz' ? { ...it, unit: 'fl oz' } : it);
   if (parseCache.size > 300) parseCache.clear();
   parseCache.set(key, out);
   return out;
@@ -312,7 +342,7 @@ const trimNum = (q, d) => String(+(+q).toFixed(d));
 function fmtQty(q, unit) {
   if (q == null || isNaN(q)) return '';
   if (['g', 'ml'].includes(unit)) return q >= 100 ? String(Math.round(q / 5) * 5) : q >= 10 ? String(Math.round(q)) : trimNum(q, 1);
-  if (['kg', 'l'].includes(unit)) return trimNum(q, 2);
+  if (['kg', 'l', 'cl'].includes(unit)) return trimNum(q, 2);
   if (q < 0.06) return trimNum(q, 2);
   let w = Math.floor(q), f = q - w, best = null;
   if (f < 0.06) f = 0;
@@ -461,7 +491,7 @@ const state = {
   pantryQ: '', pantryLoc: 'All', pantryStatus: 'All',
   kind: 'food', recipeQ: '', recipeTags: new Set(), onlyFav: false, canMake: false, recipeSort: 'recent',
   weekStart: mondayOf(new Date()),
-  scale: {}, metric: false, cook: false
+  drinkType: '', scale: {}, way: {}, metric: false, cook: false
 };
 let ai = null, downloads = null, wakeLock = null;
 const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
@@ -586,7 +616,7 @@ function ingStatus(it, f) {
   return (+p.qty) >= need - 1e-9 ? 'have' : 'short';
 }
 function recipePantry(r) {
-  const items = parseIngredients(r.ingredients).filter(i => !i.header);
+  const items = parseIngredients(r.ingredients, r.kind).filter(i => !i.header);
   let have = 0;
   for (const it of items) { const s = ingStatus(it, 1); if (s === 'have' || s === 'check') have++; }
   return { have, total: items.length };
@@ -594,7 +624,7 @@ function recipePantry(r) {
 function computeNeeds(list) {
   const agg = new Map();
   for (const { r, f } of list) {
-    for (const it of parseIngredients(r.ingredients)) {
+    for (const it of parseIngredients(r.ingredients, r.kind)) {
       if (it.header) continue;
       const n = norm(it.name);
       if (!n || ALWAYS.test(n)) continue;
@@ -788,6 +818,12 @@ function renderRecipes() {
   for (const t of state.recipeTags) if (!tagCount.has(t)) state.recipeTags.delete(t);
   $('#recipe-tags').innerHTML = [...tagCount].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t, n]) =>
     `<button type="button" class="chip" data-act="tag" data-v="${esc(t)}" aria-pressed="${state.recipeTags.has(t)}">#${esc(t)} <span class="c">${n}</span></button>`).join('');
+  const typeBar = $('#drink-types'), typeN = t => all.filter(r => drinkIs(r, t)).length;
+  const types = drinks ? DRINK_TYPES.filter(t => typeN(t)) : [];
+  if (state.drinkType && !types.includes(DRINK_TYPES.find(t => t.id === state.drinkType))) state.drinkType = '';
+  typeBar.hidden = !types.length;
+  typeBar.innerHTML = types.length ? `<button type="button" data-act="d-type" data-v="" aria-pressed="${!state.drinkType}">All <span class="c">${all.length}</span></button>` +
+    types.map(t => `<button type="button" data-act="d-type" data-v="${t.id}" aria-pressed="${state.drinkType === t.id}">${t.label} <span class="c">${typeN(t)}</span></button>`).join('') : '';
   $$('[data-act="r-onlyfav"]').forEach(b => b.setAttribute('aria-pressed', state.onlyFav));
   $$('[data-act="r-canmake"]').forEach(b => b.setAttribute('aria-pressed', state.canMake));
   if (!all.length) {
@@ -796,7 +832,7 @@ function renderRecipes() {
   }
   const words = state.recipeQ.toLowerCase().split(/\s+/).filter(Boolean);
   let rows = all.map(r => ({ r, m: recipeMatch(r, words), pc: recipePantry(r) }))
-    .filter(x => x.m.ok && (!state.onlyFav || x.r.fav) && [...state.recipeTags].every(t => (x.r.tags || []).includes(t)) && (!state.canMake || (x.pc.total && x.pc.have === x.pc.total)));
+    .filter(x => x.m.ok && (!drinks || !state.drinkType || drinkIs(x.r, DRINK_TYPES.find(t => t.id === state.drinkType))) && (!state.onlyFav || x.r.fav) && [...state.recipeTags].every(t => (x.r.tags || []).includes(t)) && (!state.canMake || (x.pc.total && x.pc.have === x.pc.total)));
   const sort = state.recipeSort;
   rows.sort((a, b) => words.length && (b.m.score - a.m.score) ? b.m.score - a.m.score :
     sort === 'az' ? a.r.title.localeCompare(b.r.title) :
@@ -809,6 +845,7 @@ function renderRecipes() {
         <div class="rtile ${tileOf(r.title)}">${foodSVG(r)}</div>
         <div class="rbody">
           <h3>${esc(r.title)}</h3>
+          ${waysOf(r) ? `<p class="ways-l">${waysOf(r).map(w => `<span>${esc(w.name)}</span>`).join('')}</p>` : ''}
           <p class="rmeta">${timeLine(r) ? `<span>${I.clock}${esc(timeLine(r))}</span>` : ''}${r.servings ? `<span>${I.users}Serves ${esc(r.servings)}</span>` : ''}</p>
           ${(r.tags || []).length ? `<div class="tags">${r.tags.slice(0, 4).map(t => `<span class="tag">#${esc(t)}</span>`).join('')}</div>` : ''}
           ${pc.total ? `<p class="have"><span class="bar"><i style="width:${pc.have / pc.total * 100}%"></i></span>${pc.have} of ${pc.total} in pantry</p>` : ''}
@@ -823,6 +860,42 @@ function timeLine(r) { return [r.prep && `Prep ${r.prep}`, r.cook && `Cook ${r.c
 /* ================= RECIPE detail ================= */
 function sc(id) { return state.scale[id] || (state.scale[id] = { f: 1 }); }
 function chk(id) { return LS.get('crumb:chk:' + id, { i: [], s: [] }); }
+// Drinks can have several ways to make them (Hot, Iced…). Each way has its own ingredients,
+// steps and glass; the first way is also mirrored onto the recipe itself.
+const waysOf = r => r && r.kind === 'drink' && (r.ways || []).length > 1 ? r.ways : null;
+function withWay(r, wayId, label) {
+  const ws = waysOf(r);
+  if (!ws) return r;
+  const w = ws.find(x => x.id === wayId) || ws[0];
+  return { ...r, ingredients: w.ingredients || '', steps: w.steps || '', serveIn: w.serveIn || '', wayId: w.id, wayName: w.name, title: label ? `${r.title} (${w.name})` : r.title };
+}
+const shownWay = id => withWay(data.recipes.get(id), state.way[id]);
+// Quick filters on the Drinks tab. Hot / Iced / Blended look at way names and tags;
+// the rest also look at the title and ingredients.
+const ALCOHOL = 'vodka|gin|rum|tequila|mezcal|whiske?y|bourbon|scotch|brandy|cognac|wine|beer|cider|liqueur|vermouth|prosecco|champagne|sake|aperol|campari|schnapps|triple sec|kahlua|baileys';
+const DRINK_TYPES = [
+  { id: 'hot', label: 'Hot', way: /\b(hot|warm|steamed)\b/i },
+  { id: 'iced', label: 'Iced', way: /\b(iced|cold|chilled|on the rocks)\b/i },
+  { id: 'blended', label: 'Blended & frozen', way: /\b(blended|frozen|slush\w*|frappe|smoothie)\b/i },
+  { id: 'coffee', label: 'Coffee & tea', any: /\b(coffee|espresso|latte|cappuccino|mocha|americano|macchiato|cold brew|tea|chai|matcha)\b/i },
+  { id: 'smoothie', label: 'Smoothies & shakes', any: /\b(smoothies?|shakes?|milkshakes?)\b/i },
+  { id: 'mocktail', label: 'Mocktails', tag: /\b(mocktails?|virgin|non-?alcoholic|alcohol-?free|zero-?proof|spritzers?)\b/i },
+  { id: 'cocktail', label: 'Cocktails', tag: /\b(cocktails?|boozy|spiked)\b/i, ing: new RegExp(`\\b(${ALCOHOL})\\b`, 'i') }
+];
+function drinkWayFor(r, t) {
+  if (!t || !t.way) return null;
+  const ws = waysOf(r);
+  return ws ? ws.find(w => t.way.test(w.name)) || null : null;
+}
+function drinkIs(r, t) {
+  const tags = (r.tags || []).join(' ');
+  if (t.way) return !!drinkWayFor(r, t) || t.way.test(tags) || (!waysOf(r) && t.way.test(r.title));
+  const ings = (waysOf(r) || [r]).map(w => w.ingredients || '').join('\n');
+  if (t.any) return t.any.test(r.title) || t.any.test(tags) || t.any.test(ings);
+  if (t.id === 'mocktail') return t.tag.test(tags) || t.tag.test(r.title);
+  return t.tag.test(tags) || t.tag.test(r.title) || (t.ing.test(ings) && !DRINK_TYPES[5].tag.test(tags));
+}
+const chkId = id => { const r = shownWay(id); return r && r.wayId ? id + ':' + r.wayId : id; };
 function setChk(id, v) { LS.set('crumb:chk:' + id, v); }
 const TIMER_RX = /(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*(minutes?|mins?|hours?|hrs?)\b/gi;
 function stepHTML(text) {
@@ -832,13 +905,14 @@ function stepHTML(text) {
   });
 }
 function renderDetail() {
-  const r = data.recipes.get(state.recipeId);
+  const r = shownWay(state.recipeId);
   $('#recipe-index').hidden = true;
   const el = $('#recipe-detail'); el.hidden = false;
   if (!r) { el.innerHTML = ready() ? `<div class="empty"><h3>That recipe isn't here anymore</h3><a class="btn" href="#recipes">Back to recipes</a></div>` : loadingHTML; return; }
   const s = sc(r.id), f = s.f;
-  const c = chk(r.id);
-  const items = parseIngredients(r.ingredients);
+  const c = chk(chkId(r.id));
+  const ws = waysOf(r);
+  const items = parseIngredients(r.ingredients, r.kind);
   let idx = -1;
   const ingHTML = items.map(it => {
     if (it.header) return `<li class="ing-h">${esc(it.text)}</li>`;
@@ -871,11 +945,13 @@ function renderDetail() {
         <div class="dmeta">
           ${servings ? `<span>${I.users}Serves ${esc(fmtQty(servings))}</span>` : ''}
           ${yieldText ? `<span>Makes ${esc(yieldText)}</span>` : ''}
+          ${r.serveIn ? `<span>Serve in ${esc(/^[aeiou]/i.test(r.serveIn) ? 'an' : 'a')} ${esc(r.serveIn.toLowerCase())}</span>` : ''}
           ${r.prep ? `<span>${I.clock}Prep ${esc(r.prep)}</span>` : ''}
-          ${r.cook ? `<span>${I.clock}Cook ${esc(r.cook)}</span>` : ''}
+          ${r.cook ? `<span>${I.clock}${r.kind === 'drink' ? 'Chill or steep' : 'Cook'} ${esc(r.cook)}</span>` : ''}
           ${r.source ? (isUrl ? `<span>${I.link}<a href="${esc(r.source)}" target="_blank" rel="noopener">${esc(r.source.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0])}</a></span>` : `<span>${I.link}${esc(r.source)}</span>`) : ''}
         </div>
         ${(r.tags || []).length ? `<div class="tags">${r.tags.map(t => `<span class="tag">#${esc(t)}</span>`).join('')}</div>` : ''}
+        ${ws ? `<div class="waypick"><span class="lab">Make it</span><div class="seg" role="group" aria-label="Ways to make it">${ws.map(w => `<button type="button" data-act="way" data-v="${esc(w.id)}" aria-pressed="${w.id === r.wayId}">${esc(w.name)}</button>`).join('')}</div></div>` : ''}
       </div>
       <div class="dactions">
         <button type="button" class="btn sm fav-inline" data-act="r-fav" data-id="${r.id}" aria-pressed="${!!r.fav}">${r.fav ? 'Favorited' : 'Favorite'}</button>
@@ -952,19 +1028,46 @@ function splitPasted(text) {
   }
   return out;
 }
+// Form wording for each kind; the Food/Drink toggle swaps it in place.
+const FORM_WORDS = {
+  food: {
+    add: 'Add a recipe', edit: 'Edit recipe', save: 'Save recipe', saved: 'Recipe saved', noun: 'recipe',
+    paste: 'Paste a whole recipe', pasteHint: 'Copy a recipe from a website, email or note and paste it here. Crumb will split it into title, ingredients and steps.',
+    title: 'Brown butter chocolate chip cookies', yield: '24 cookies', prep: '20 min', cookLabel: 'Cook', cook: '12 min',
+    tags: 'cookies, chocolate, freezer friendly',
+    ing: '2 1/4 cups all-purpose flour\n1 tsp baking soda\n1 cup butter, softened\n\nFrosting:\n1 cup powdered sugar',
+    ingHint: 'One per line. End a line with a colon to start a section, like “Frosting:”.',
+    stepsHint: 'One step per line. Times like “bake 12 minutes” become tap-to-start timers.',
+    notes: 'Swaps, what worked, what to try next time',
+    related: 'Related recipes', relq: 'Filter recipes', relHint: 'Links show on both recipes.'
+  },
+  drink: {
+    add: 'Add a drink', edit: 'Edit drink', save: 'Save drink', saved: 'Drink saved', noun: 'drink',
+    paste: 'Paste a drink recipe', pasteHint: 'Copy a drink recipe from a website, café menu note or cocktail card and paste it here. Crumb will split it into title, ingredients and steps.',
+    title: 'Iced brown sugar oat latte', yield: '2 glasses', prep: '5 min', cookLabel: 'Chill or steep', cook: '4 min',
+    tags: 'iced, coffee, mocktail',
+    ing: '2 oz espresso\n1 tbsp brown sugar syrup\n6 oz oat milk\nIce\n\nGarnish:\nPinch of cinnamon',
+    ingHint: 'One per line. End a line with a colon to start a section, like “Garnish:”.',
+    stepsHint: 'One step per line. Times like “steep 4 minutes” or “shake 15 seconds” become tap-to-start timers.',
+    notes: 'Sweetness, milk swaps, garnish ideas',
+    related: 'Pairs with', relq: 'Filter recipes and drinks', relHint: 'Links show on both, so a drink can pair with a food.'
+  }
+};
+const SERVE_IN = ['Mug', 'Glass', 'Tall glass', 'Rocks glass', 'Highball glass', 'Coupe', 'Martini glass', 'Margarita glass', 'Wine glass', 'Champagne flute', 'Mason jar', 'Pitcher', 'Punch bowl', 'Thermos'];
 function recipeForm(r, focus, kind) {
   const isNew = !r;
   let curKind = r ? (r.kind === 'drink' ? 'drink' : 'food') : (kind === 'drink' ? 'drink' : 'food');
+  const W = () => FORM_WORDS[curKind];
   r = r || { title: '', tags: [], servings: '', yield: '', prep: '', cook: '', source: '', ingredients: '', steps: '', notes: '', related: [] };
   const others = [...data.recipes.values()].filter(o => o.id !== r.id).sort((a, b) => a.title.localeCompare(b.title));
   const m = openModal({
     wide: true,
-    title: isNew ? (curKind === 'drink' ? 'Add a drink' : 'Add a recipe') : 'Edit recipe',
+    title: isNew ? W().add : W().edit,
     body: `
       <details class="paste" ${isNew ? 'open' : ''}>
-        <summary>Paste a whole recipe</summary>
+        <summary id="rf-paste-sum"></summary>
         <div class="paste-body">
-          <textarea id="rf-paste" rows="5" placeholder="Copy a recipe from a website, email or note and paste it here. Crumb will split it into title, ingredients and steps."></textarea>
+          <textarea id="rf-paste" rows="5"></textarea>
           <div class="paste-actions">
             <button type="button" class="btn" data-m="split">Fill in the form</button>
             <button type="button" class="btn" data-m="tidy">${I.spark}Tidy it with Claude</button>
@@ -973,29 +1076,89 @@ function recipeForm(r, focus, kind) {
         </div>
       </details>
       <div class="field"><span>Type</span><div><div class="seg" role="group" aria-label="Recipe type"><button type="button" data-m="kind" data-v="food" aria-pressed="${curKind === 'food'}">Food</button><button type="button" data-m="kind" data-v="drink" aria-pressed="${curKind === 'drink'}">Drink</button></div></div></div>
-      <label class="field"><span>Title</span><input id="rf-title" type="text" value="${esc(r.title)}" placeholder="Brown butter chocolate chip cookies" autocomplete="off"></label>
+      <label class="field"><span>Title</span><input id="rf-title" type="text" value="${esc(r.title)}" autocomplete="off"></label>
       <div class="row">
         <label class="field"><span>Servings</span><input id="rf-serv" type="number" min="0" step="any" value="${esc(r.servings)}"></label>
-        <label class="field"><span>Makes</span><input id="rf-yield" type="text" value="${esc(r.yield || '')}" placeholder="24 cookies"></label>
-        <label class="field"><span>Prep</span><input id="rf-prep" type="text" value="${esc(r.prep || '')}" placeholder="20 min"></label>
-        <label class="field"><span>Cook</span><input id="rf-cook" type="text" value="${esc(r.cook || '')}" placeholder="12 min"></label>
+        <label class="field"><span>Makes</span><input id="rf-yield" type="text" value="${esc(r.yield || '')}"></label>
+        <label class="field"><span>Prep</span><input id="rf-prep" type="text" value="${esc(r.prep || '')}"></label>
+        <label class="field"><span id="rf-cook-lab"></span><input id="rf-cook" type="text" value="${esc(r.cook || '')}"></label>
       </div>
       <div class="row">
-        <label class="field"><span>Tags</span><input id="rf-tags" type="text" value="${esc((r.tags || []).join(', '))}" placeholder="cookies, chocolate, freezer friendly"><small>Separate with commas.</small></label>
+        <label class="field"><span>Tags</span><input id="rf-tags" type="text" value="${esc((r.tags || []).join(', '))}"><small>Separate with commas.</small></label>
         <label class="field"><span>Source</span><input id="rf-source" type="text" value="${esc(r.source || '')}" placeholder="Website link, cookbook and page, or Grandma"></label>
       </div>
-      <label class="field"><span>Ingredients</span><textarea id="rf-ing" rows="9" placeholder="2 1/4 cups all-purpose flour&#10;1 tsp baking soda&#10;1 cup butter, softened&#10;&#10;Frosting:&#10;1 cup powdered sugar">${esc(r.ingredients)}</textarea><small>One per line. End a line with a colon to start a section, like “Frosting:”.</small></label>
-      <label class="field"><span>Instructions</span><textarea id="rf-steps" rows="8" placeholder="One step per line">${esc(r.steps)}</textarea><small>One step per line. Times like “bake 12 minutes” become tap-to-start timers.</small></label>
-      <label class="field"><span>Notes</span><textarea id="rf-notes" rows="3" placeholder="Swaps, what worked, what to try next time">${esc(r.notes || '')}</textarea></label>
-      <div class="field" id="rf-related-wrap"><span>Related recipes</span>
-        ${others.length ? `<input id="rf-relq" type="search" placeholder="Filter recipes" aria-label="Filter related recipes">
+      <div class="way-box" id="rf-way-box">
+        <div class="field" id="rf-drink-row"><span>Ways to make it</span>
+          <div class="chips" id="rf-ways"></div>
+          <div class="way-add"><span class="muted" style="font-size:0.85rem">Add a way:</span>${['Hot', 'Iced', 'Blended'].map(n => `<button type="button" class="chip" data-m="way-add" data-v="${n}">+ ${n}</button>`).join('')}<button type="button" class="chip" data-m="way-add" data-v="">+ Another way</button></div>
+          <small>Each way gets its own ingredients, steps and glass. A new way starts as a copy of the one you're on.</small>
+        </div>
+        <div class="row" id="rf-way-edit" hidden>
+          <label class="field"><span>Name of this way</span><input id="rf-wayname" type="text" placeholder="Iced, Frozen, Spiked…" autocomplete="off"></label>
+          <div class="field"><span>&nbsp;</span><button type="button" class="btn danger" data-m="way-del">Remove this way</button></div>
+        </div>
+        <label class="field" id="rf-servein-wrap"><span>Serve in</span><input id="rf-servein" type="text" list="rf-servein-list" value="${esc(r.serveIn || '')}" placeholder="Mug, rocks glass, pitcher…" autocomplete="off"><datalist id="rf-servein-list">${SERVE_IN.map(s => `<option value="${esc(s)}">`).join('')}</datalist></label>
+        <label class="field"><span>Ingredients</span><textarea id="rf-ing" rows="9">${esc(r.ingredients)}</textarea><small id="rf-ing-hint"></small></label>
+        <label class="field"><span>Instructions</span><textarea id="rf-steps" rows="8" placeholder="One step per line">${esc(r.steps)}</textarea><small id="rf-steps-hint"></small></label>
+      </div>
+      <label class="field"><span>Notes</span><textarea id="rf-notes" rows="3">${esc(r.notes || '')}</textarea></label>
+      <div class="field" id="rf-related-wrap"><span id="rf-rel-lab"></span>
+        ${others.length ? `<input id="rf-relq" type="search" aria-label="Filter related recipes">
         <div class="checklist" id="rf-related">${others.map(o => `<label data-t="${esc(o.title.toLowerCase())}"><input type="checkbox" value="${o.id}" ${(r.related || []).includes(o.id) ? 'checked' : ''}> ${esc(o.title)}</label>`).join('')}</div>
-        <small>Links show on both recipes.</small>` : '<small>Add more recipes to link them together.</small>'}
+        <small id="rf-rel-hint"></small>` : '<small>Add more recipes to link them together.</small>'}
       </div>`,
-    foot: `${isNew ? '' : '<button type="button" class="btn danger" data-m="del">Delete</button>'}<span class="sp"></span><button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn primary" data-m="save">${isNew ? 'Save recipe' : 'Save'}</button>`
+    foot: `${isNew ? '' : '<button type="button" class="btn danger" data-m="del">Delete</button>'}<span class="sp"></span><button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn primary" data-m="save" id="rf-save"></button>`
   });
   const E = id => $('#' + id, m.el);
-  m.on('kind', b => { curKind = b.dataset.v; $$('[data-m="kind"]', m.el).forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  const applyWords = () => {
+    const w = W(), set = (id, v) => { const el = E(id); if (el) el.textContent = v; }, ph = (id, v) => { const el = E(id); if (el) el.placeholder = v; };
+    $('.modal-h h2', m.el).textContent = isNew ? w.add : w.edit;
+    set('rf-paste-sum', w.paste); ph('rf-paste', w.pasteHint);
+    ph('rf-title', w.title); ph('rf-yield', w.yield); ph('rf-prep', w.prep); ph('rf-cook', w.cook); set('rf-cook-lab', w.cookLabel);
+    ph('rf-tags', w.tags); ph('rf-ing', w.ing); set('rf-ing-hint', w.ingHint); set('rf-steps-hint', w.stepsHint); ph('rf-notes', w.notes);
+    set('rf-rel-lab', w.related); ph('rf-relq', w.relq); set('rf-rel-hint', w.relHint);
+    set('rf-save', isNew ? w.save : 'Save');
+    E('rf-drink-row').hidden = E('rf-servein-wrap').hidden = curKind !== 'drink';
+    E('rf-way-edit').hidden = curKind !== 'drink' || !ways.length;
+    E('rf-way-box').classList.toggle('on', curKind === 'drink' && ways.length > 0);
+    // new drinks start at 1 serving; switching back to food clears that default
+    const serv = E('rf-serv');
+    if (isNew && curKind === 'drink' && serv.value === '') { serv.value = 1; serv.dataset.auto = '1'; }
+    else if (curKind === 'food' && serv.dataset.auto && serv.value === '1') { serv.value = ''; delete serv.dataset.auto; }
+  };
+  // ways: while there is more than one, the ingredient, step and glass fields show the selected way
+  let ways = (waysOf(r) || []).map(w => ({ ...w })), wi = 0;
+  const stash = () => { if (ways.length) Object.assign(ways[wi], { name: E('rf-wayname').value.trim() || ways[wi].name, ingredients: E('rf-ing').value, steps: E('rf-steps').value, serveIn: E('rf-servein').value.trim() }); };
+  const drawWays = () => {
+    E('rf-ways').innerHTML = ways.length
+      ? ways.map((w, i) => `<button type="button" class="chip" data-m="way" data-i="${i}" aria-pressed="${i === wi}">${esc(w.name || 'Untitled')}</button>`).join('')
+      : '<small class="muted">Just one way so far.</small>';
+    $$('[data-m="way-add"][data-v]', m.el).forEach(b => { b.hidden = !!b.dataset.v && ways.some(w => w.name.toLowerCase() === b.dataset.v.toLowerCase()); });
+    applyWords();
+  };
+  const loadWay = () => {
+    if (ways.length) { const w = ways[wi]; E('rf-ing').value = w.ingredients || ''; E('rf-steps').value = w.steps || ''; E('rf-servein').value = w.serveIn || ''; E('rf-wayname').value = w.name || ''; }
+    drawWays();
+  };
+  m.on('way', b => { stash(); wi = +b.dataset.i; loadWay(); });
+  m.on('way-add', b => {
+    if (!ways.length) ways.push({ id: uid('w'), name: 'Original', ingredients: E('rf-ing').value, steps: E('rf-steps').value, serveIn: E('rf-servein').value.trim() });
+    else stash();
+    const base = ways[wi];
+    ways.push({ id: uid('w'), name: b.dataset.v || '', ingredients: base.ingredients, steps: base.steps, serveIn: base.serveIn });
+    wi = ways.length - 1; loadWay();
+    if (!b.dataset.v || ways.length === 2) E('rf-wayname').focus();
+    toast(ways.length === 2 ? 'Added. Rename “Original” to say how the first way is made.' : 'Added. Edit its ingredients and steps below.');
+  });
+  m.on('way-del', () => {
+    ways.splice(wi, 1);
+    if (ways.length === 1) { const w = ways[0]; ways = []; wi = 0; E('rf-ing').value = w.ingredients || ''; E('rf-steps').value = w.steps || ''; E('rf-servein').value = w.serveIn || ''; drawWays(); }
+    else { wi = Math.max(0, wi - 1); loadWay(); }
+  });
+  E('rf-wayname').addEventListener('input', e => { if (!ways.length) return; ways[wi].name = e.target.value; const c = $(`[data-m="way"][data-i="${wi}"]`, m.el); if (c) c.textContent = e.target.value || 'Untitled'; });
+  loadWay();
+  E('rf-serv').addEventListener('input', e => delete e.target.dataset.auto);
+  m.on('kind', b => { curKind = b.dataset.v; $$('[data-m="kind"]', m.el).forEach(x => x.setAttribute('aria-pressed', x === b)); applyWords(); });
   if (focus === 'related' && E('rf-relq')) { E('rf-related-wrap').scrollIntoView({ block: 'center' }); E('rf-relq').focus(); }
   else if (!isNew) E('rf-title').focus();
   else E('rf-paste').focus();
@@ -1035,7 +1198,7 @@ function recipeForm(r, focus, kind) {
     btn.disabled = true; ctl = new AbortController();
     try {
       const o = await ai.json(`Turn this pasted recipe into structured data. Reply with only JSON in this shape:
-{"title": string, "servings": number or null, "yield": string (like "24 cookies", or ""), "prep": string (like "15 min", or ""), "cook": string, "tags": [up to 5 short lowercase tags], "ingredients": [one string per ingredient, keeping amounts and units as written; a section header is its own string ending with ":"], "steps": [one string per step, no numbers], "notes": string}
+{"title": string, "servings": number or null, "yield": string (like "${W().yield}", or ""), "prep": string (like "15 min", or ""), "cook": string, "tags": [up to 5 short lowercase tags], "ingredients": [one string per ingredient, keeping amounts and units as written; a section header is its own string ending with ":"], "steps": [one string per step, no numbers], "notes": string}
 Keep the author's wording. Leave out ads, life stories, comments and nutrition facts.
 
 Recipe text:
@@ -1056,16 +1219,21 @@ ${t.slice(0, 24000)}
   m.onClose(() => ctl && ctl.abort());
   m.on('save', () => {
     const title = E('rf-title').value.trim();
-    if (!title) { E('rf-title').focus(); toast('Give the recipe a title'); return; }
+    if (!title) { E('rf-title').focus(); toast(`Give the ${W().noun} a title`); return; }
     const related = $$('#rf-related input:checked', m.el).map(i => i.value);
     const id = r.id || uid('r');
+    stash();
+    const keepWays = curKind === 'drink' && ways.length > 1 ? ways.map((w, i) => ({ id: w.id, name: w.name.trim() || `Way ${i + 1}`, ingredients: (w.ingredients || '').trim(), steps: (w.steps || '').trim(), serveIn: (w.serveIn || '').trim() })) : [];
+    // the first way doubles as the recipe's own ingredients, steps and glass
+    if (keepWays.length) { E('rf-ing').value = keepWays[0].ingredients; E('rf-steps').value = keepWays[0].steps; E('rf-servein').value = keepWays[0].serveIn; }
     put('recipes', {
       ...r, id, title,
       servings: E('rf-serv').value === '' ? '' : +E('rf-serv').value,
       yield: E('rf-yield').value.trim(), prep: E('rf-prep').value.trim(), cook: E('rf-cook').value.trim(),
       tags: [...new Set(E('rf-tags').value.split(',').map(t => t.trim().toLowerCase().replace(/^#/, '')).filter(Boolean))],
       source: E('rf-source').value.trim(), ingredients: E('rf-ing').value.trim(), steps: E('rf-steps').value.trim(), notes: E('rf-notes').value.trim(),
-      related, kind: curKind, created: r.created || Date.now()
+      related, kind: curKind, created: r.created || Date.now(),
+      serveIn: curKind === 'drink' ? E('rf-servein').value.trim() : '', ways: keepWays
     });
     // keep links two-way
     const before = new Set(r.related || []);
@@ -1073,10 +1241,10 @@ ${t.slice(0, 24000)}
     for (const oid of before) if (!related.includes(oid)) { const o = data.recipes.get(oid); if (o && (o.related || []).includes(id)) put('recipes', { ...o, related: o.related.filter(x => x !== id) }); }
     m.close();
     location.hash = 'recipe-' + id;
-    toast(isNew ? 'Recipe saved' : 'Saved');
+    toast(isNew ? W().saved : 'Saved');
   });
   m.on('del', async () => {
-    if (!(await confirmBox(`Delete “${r.title}”? This can't be undone.`, 'Delete recipe', true))) return;
+    if (!(await confirmBox(`Delete “${r.title}”? This can't be undone.`, r.kind === 'drink' ? 'Delete drink' : 'Delete recipe', true))) return;
     remove('recipes', r.id);
     for (const o of data.recipes.values()) if ((o.related || []).includes(r.id)) put('recipes', { ...o, related: o.related.filter(x => x !== r.id) });
     for (const e of data.plan.values()) if (e.recipeId === r.id) remove('plan', e.id);
@@ -1085,7 +1253,7 @@ ${t.slice(0, 24000)}
 }
 
 function scaleByIngredient(r, i) {
-  const it = parseIngredients(r.ingredients).filter(x => !x.header)[i];
+  const it = parseIngredients(r.ingredients, r.kind).filter(x => !x.header)[i];
   if (!it || it.qty == null) return;
   const m = openModal({
     title: 'Scale to what you have',
@@ -1127,6 +1295,7 @@ function planForm(opts = {}) {
         <label class="field"><span>Meal</span><select id="pl-slot">${SLOTS.map(s => `<option ${s === (opts.slot || 'Dinner') ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
       </div>
       <label class="field"><span>Recipe</span><select id="pl-recipe"><option value="">Just a note (no recipe)</option>${recipes.map(r => `<option value="${r.id}" ${r.id === opts.recipeId ? 'selected' : ''}>${esc(r.title)}</option>`).join('')}</select></label>
+      <label class="field" id="pl-way-wrap" hidden><span>Way to make it</span><select id="pl-way"></select></label>
       <label class="field" id="pl-text-wrap"><span>Note</span><input id="pl-text" type="text" value="${esc(opts.text || '')}" placeholder="Leftovers, eat out, pizza night…"></label>
       <label class="field" id="pl-serv-wrap"><span>Servings</span><input id="pl-serv" type="number" min="0.5" step="0.5" value="${esc(opts.servings || '')}"><small>Shopping amounts scale to this.</small></label>`,
     foot: `<button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn primary" data-m="ok">Add to plan</button>`
@@ -1136,13 +1305,20 @@ function planForm(opts = {}) {
     const r = data.recipes.get(sel.value);
     $('#pl-text-wrap', m.el).hidden = !!r; $('#pl-serv-wrap', m.el).hidden = !r;
     if (r && !serv.value) serv.value = r.servings || 1;
+    const ws = waysOf(r);
+    $('#pl-way-wrap', m.el).hidden = !ws;
+    $('#pl-way', m.el).innerHTML = ws ? ws.map(w => `<option value="${esc(w.id)}" ${w.id === opts.wayId ? 'selected' : ''}>${esc(w.name)}</option>`).join('') : '';
   };
-  sel.addEventListener('change', () => { serv.value = ''; sync(); }); sync();
+  sel.addEventListener('change', () => {
+    serv.value = ''; sync();
+    const r = data.recipes.get(sel.value), slot = $('#pl-slot', m.el);
+    if (r && r.kind === 'drink') slot.value = 'Drinks'; else if (slot.value === 'Drinks') slot.value = 'Dinner';
+  }); sync();
   m.on('ok', () => {
     const r = data.recipes.get(sel.value), text = $('#pl-text', m.el).value.trim(), d = $('#pl-date', m.el).value;
     if (!r && !text) { toast('Pick a recipe or write a note'); return; }
     if (!d) { toast('Pick a day'); return; }
-    put('plan', { id: uid('m'), date: d, slot: $('#pl-slot', m.el).value, recipeId: r ? r.id : '', text: r ? '' : text, servings: r ? (+serv.value || r.servings || 1) : '', cooked: false, created: Date.now() });
+    put('plan', { id: uid('m'), date: d, slot: $('#pl-slot', m.el).value, recipeId: r ? r.id : '', wayId: waysOf(r) ? $('#pl-way', m.el).value : '', text: r ? '' : text, servings: r ? (+serv.value || r.servings || 1) : '', cooked: false, created: Date.now() });
     m.close();
     toast(`Planned for ${DOW[fromYmd(d).getDay()]}, ${MON[fromYmd(d).getMonth()]} ${fromYmd(d).getDate()}`);
   });
@@ -1170,7 +1346,7 @@ const NEED_LABEL = { have: 'In pantry', short: 'Not enough', buy: 'Need to buy',
 function madeIt(r, f, entry) {
   const rows = [];
   const seen = new Map();
-  for (const it of parseIngredients(r.ingredients)) {
+  for (const it of parseIngredients(r.ingredients, r.kind)) {
     if (it.header || it.qty == null) continue;
     const p = matchPantry(norm(it.name));
     if (!p) continue;
@@ -1375,7 +1551,8 @@ function renderPlan() {
       <div class="day-h"><span class="dn">${DOW[d.getDay()]}</span><span class="dd">${MON[d.getMonth()]} ${d.getDate()}${key === today ? ' · today' : ''}</span></div>
       ${es.map(e => {
         const r = e.recipeId && data.recipes.get(e.recipeId);
-        const title = r ? `<a class="et" href="#recipe-${r.id}">${esc(r.title)}</a>` : `<span class="et">${esc(e.text || 'Removed recipe')}</span>`;
+        const wn = r && e.wayId && waysOf(r) ? withWay(r, e.wayId).wayName : '';
+        const title = r ? `<a class="et" href="#recipe-${r.id}" data-act="pl-way" data-id="${r.id}" data-v="${esc(e.wayId || '')}">${esc(r.title)}${wn ? ` <span class="muted">(${esc(wn)})</span>` : ''}</a>` : `<span class="et">${esc(e.text || 'Removed recipe')}</span>`;
         return `<div class="entry ${r ? tileOf(r.title) : ''} ${e.cooked ? 'cooked' : ''}">
           <span class="slot">${esc(e.slot)}</span>${title}
           <div class="er"><span>${r && e.servings ? `${esc(fmtQty(+e.servings))} servings` : ''}${e.cooked ? ' · made' : ''}</span>
@@ -1387,7 +1564,7 @@ function renderPlan() {
   }).join('');
   const keys = new Set(days.map(ymd));
   const list = entries.filter(e => keys.has(e.date) && !e.cooked && e.recipeId && data.recipes.get(e.recipeId))
-    .map(e => { const r = data.recipes.get(e.recipeId); return { r, f: r.servings ? (+e.servings || +r.servings) / +r.servings : 1 }; });
+    .map(e => { const r = withWay(data.recipes.get(e.recipeId), e.wayId, true); return { r, f: r.servings ? (+e.servings || +r.servings) / +r.servings : 1 }; });
   const box = $('#plan-needs');
   if (!list.length) {
     box.innerHTML = `<div class="panel-h"><h2>Groceries for this week</h2></div><p class="muted">Plan a few recipes and Crumb will total their ingredients, check them against your pantry, and add what's missing to your shopping list.</p>`;
@@ -1573,18 +1750,26 @@ const A = {
   'p-restock': () => restockLow(),
   // recipes
   'r-new': () => recipeForm(null, null, state.kind),
-  'r-open': (t, id) => { location.hash = 'recipe-' + id; },
+  'r-open': (t, id) => {
+    // opening a drink from the Hot / Iced / Blended filter shows that way of making it
+    const w = state.kind === 'drink' && drinkWayFor(data.recipes.get(id), DRINK_TYPES.find(x => x.id === state.drinkType));
+    if (w) state.way[id] = w.id;
+    location.hash = 'recipe-' + id;
+  },
   'r-edit': (t, id) => recipeForm(data.recipes.get(id), t.dataset.focus),
   'r-fav': (t, id) => { const r = data.recipes.get(id); if (r) put('recipes', { ...r, fav: !r.fav, updated: r.updated }); },
   'r-onlyfav': () => { state.onlyFav = !state.onlyFav; render(); },
   'r-canmake': () => { state.canMake = !state.canMake; render(); },
+  'd-type': t => { state.drinkType = t.dataset.v; render(); },
   tag: t => { const v = t.dataset.v; state.recipeTags.has(v) ? state.recipeTags.delete(v) : state.recipeTags.add(v); render(); },
   scale: t => { sc(state.recipeId).f = +t.dataset.v; render(); },
   metric: () => { state.metric = !state.metric; render(); },
   pan: () => { const r = data.recipes.get(state.recipeId); if (r) panConverter(r); },
-  'scale-by': t => { const r = data.recipes.get(state.recipeId); if (r) scaleByIngredient(r, +t.dataset.i); },
-  'ing-check': t => { const id = state.recipeId, c = chk(id), i = +t.dataset.i; c.i = c.i.includes(i) ? c.i.filter(x => x !== i) : [...c.i, i]; setChk(id, c); t.classList.toggle('done'); },
-  'step-check': t => { const id = state.recipeId, c = chk(id), i = +t.dataset.i; c.s = c.s.includes(i) ? c.s.filter(x => x !== i) : [...c.s, i]; setChk(id, c); render(); },
+  'scale-by': t => { const r = shownWay(state.recipeId); if (r) scaleByIngredient(r, +t.dataset.i); },
+  way: t => { state.way[state.recipeId] = t.dataset.v; render(); },
+  'pl-way': (t, id) => { if (t.dataset.v) state.way[id] = t.dataset.v; location.hash = 'recipe-' + id; },
+  'ing-check': t => { const id = chkId(state.recipeId), c = chk(id), i = +t.dataset.i; c.i = c.i.includes(i) ? c.i.filter(x => x !== i) : [...c.i, i]; setChk(id, c); t.classList.toggle('done'); },
+  'step-check': t => { const id = chkId(state.recipeId), c = chk(id), i = +t.dataset.i; c.s = c.s.includes(i) ? c.s.filter(x => x !== i) : [...c.s, i]; setChk(id, c); render(); },
   'r-reset': (t, id) => { setChk(id, { i: [], s: [] }); render(); },
   timer: t => { const r = data.recipes.get(state.recipeId); startTimer(+t.dataset.sec, `${r ? r.title.split(' ').slice(0, 3).join(' ') + ': ' : ''}${t.textContent.trim()}`); },
   't-stop': (t, id) => { const i = timers.findIndex(x => x.id === id); if (i >= 0) timers.splice(i, 1); drawTimers(); },
@@ -1594,9 +1779,9 @@ const A = {
     else { try { wakeLock && wakeLock.release(); } catch {} wakeLock = null; }
     render();
   },
-  'r-plan': (t, id) => { const r = data.recipes.get(id); if (r) planForm({ recipeId: id, servings: r.servings ? +(+r.servings * sc(id).f).toFixed(2) : '', slot: (r.tags || []).some(x => /bak|cookie|cake|bread|dessert|pie/.test(x)) ? 'Baking' : 'Dinner' }); },
-  'r-shop': (t, id) => { const r = data.recipes.get(id); if (r) shopForRecipe(r, sc(id).f); },
-  'r-made': (t, id) => { const r = data.recipes.get(id); if (r) madeIt(r, sc(id).f); },
+  'r-plan': (t, id) => { const r = data.recipes.get(id); if (r) planForm({ recipeId: id, wayId: state.way[id], servings: r.servings ? +(+r.servings * sc(id).f).toFixed(2) : '', slot: r.kind === 'drink' ? 'Drinks' : (r.tags || []).some(x => /bak|cookie|cake|bread|dessert|pie/.test(x)) ? 'Baking' : 'Dinner' }); },
+  'r-shop': (t, id) => { const r = withWay(data.recipes.get(id), state.way[id], true); if (r) shopForRecipe(r, sc(id).f); },
+  'r-made': (t, id) => { const r = withWay(data.recipes.get(id), state.way[id], true); if (r) madeIt(r, sc(id).f); },
   // shopping
   's-mode': t => saveSettings({ shopMode: t.dataset.v }),
   's-check': (t, id) => { const it = data.shopping.get(id); if (it) put('shopping', { ...it, done: !it.done }); },
@@ -1610,7 +1795,7 @@ const A = {
   wk: t => { const v = +t.dataset.v; state.weekStart = v === 0 ? mondayOf(new Date()) : addDays(state.weekStart, 7 * v); render(); },
   'pl-add': t => planForm({ date: t.dataset.v }),
   'pl-del': (t, id) => remove('plan', id),
-  'pl-cook': (t, id) => { const e = data.plan.get(id), r = e && data.recipes.get(e.recipeId); if (r) madeIt(r, r.servings ? (+e.servings || +r.servings) / +r.servings : 1, e); },
+  'pl-cook': (t, id) => { const e = data.plan.get(id), r = e && withWay(data.recipes.get(e.recipeId), e.wayId, true); if (r) madeIt(r, r.servings ? (+e.servings || +r.servings) / +r.servings : 1, e); },
   'pl-shop': () => {
     const needs = $('#plan-needs')._needs || [];
     let n = 0;
