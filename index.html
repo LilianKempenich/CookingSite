@@ -4,18 +4,19 @@
 <title>Crumb</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="styles.css">
 
 <header class="nav">
   <div class="nav-in">
     <a class="brand" href="#recipes" aria-label="Crumb home">
-      <span class="mark"><svg class="i" viewBox="0 0 24 24"><path d="M9.6 7.4c1.4-1.3 3.4-1.3 4.8 0L13.4 15h-2.8z"/><path d="M9.6 7.4C7.6 7.6 6 9 5.4 11l5.2 4"/><path d="M14.4 7.4c2 .2 3.6 1.6 4.2 3.6l-5.2 4"/><path d="M5.4 11c-1.6.6-2.5 2.2-2.2 4.2L7.8 14"/><path d="M18.6 11c1.6.6 2.5 2.2 2.2 4.2L16.2 14"/></svg></span>
+      <span class="mark"><svg class="i" viewBox="0 0 24 24"><path d="M4 14c0-4.4 3.6-8 8-8s8 3.6 8 8"/><path d="M3 14h18l-1.5 5.2a1 1 0 0 1-1 .8H5.5a1 1 0 0 1-1-.8z"/><path d="M12 6V3"/></svg></span>
       <span>Crumb</span>
     </a>
     <nav class="tabs" aria-label="Sections">
       <a class="tab" href="#pantry" data-view="pantry"><svg class="i" viewBox="0 0 24 24"><path d="M8 3h8"/><path d="M7 6h10"/><path d="M7 6v12a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3V6"/><path d="M10 12h4"/></svg><span>Pantry</span><span class="badge" id="b-pantry" hidden></span></a>
       <a class="tab" href="#recipes" data-view="recipes"><svg class="i" viewBox="0 0 24 24"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19"/><path d="M9 8h6"/></svg><span>Recipes</span></a>
+      <a class="tab" href="#drinks" data-view="drinks"><svg class="i" viewBox="0 0 24 24"><path d="M6 4h12l-1.6 15.2a2 2 0 0 1-2 1.8H9.6a2 2 0 0 1-2-1.8z"/><path d="M6.8 10h10.4"/><path d="M14 4l2-2.5"/></svg><span>Drinks</span></a>
       <a class="tab" href="#shopping" data-view="shopping"><svg class="i" viewBox="0 0 24 24"><path d="M3.5 9h17l-1.8 10.2a1.5 1.5 0 0 1-1.5 1.3H6.8a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M8.5 9l3.5-5.5L15.5 9"/></svg><span>Shopping</span><span class="badge" id="b-shopping" hidden></span></a>
       <a class="tab" href="#plan" data-view="plan"><svg class="i" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17"/><path d="M8 3v4"/><path d="M16 3v4"/></svg><span>Meal plan</span></a>
     </nav>
@@ -57,8 +58,8 @@
   <section class="view" id="v-recipes" hidden>
     <div id="recipe-index" class="view">
       <div class="view-head">
-        <div><h1>Recipes</h1><p class="sub" id="recipe-sub">Your recipe box</p></div>
-        <div class="head-actions"><button type="button" class="btn primary" data-act="r-new">Add recipe</button></div>
+        <div><h1 id="recipe-h1">Recipes</h1><p class="sub" id="recipe-sub">Your recipe box</p></div>
+        <div class="head-actions"><button type="button" class="btn primary" data-act="r-new" id="r-new-btn">Add recipe</button></div>
       </div>
       <div class="toolbar">
         <label class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><input id="recipe-q" type="search" placeholder="Search names, tags, ingredients, steps, notes" aria-label="Search recipes"></label>
@@ -146,7 +147,26 @@ try {
 } catch {}
 const clone = o => JSON.parse(JSON.stringify(o));
 const hashN = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
-const tileOf = s => 'tile-' + (hashN(s) % 4 + 1);
+const tileOf = s => 'tile-' + (hashN(s) % 5 + 1);
+// Food pictures from the Cooking Site Design (64x64 line art); the glass is new, for drinks.
+const FOOD_SVG = {
+  cookie: '<circle cx="32" cy="32" r="20"/><circle cx="25" cy="26" r="2.2" fill="currentColor"/><circle cx="38" cy="24" r="2.2" fill="currentColor"/><circle cx="34" cy="36" r="2.2" fill="currentColor"/><circle cx="24" cy="39" r="2.2" fill="currentColor"/><circle cx="42" cy="40" r="2" fill="currentColor"/>',
+  lemon: '<circle cx="32" cy="32" r="20"/><circle cx="32" cy="32" r="15"/><path d="M32 17v30M19 24.5l26 15M19 39.5l26-15"/>',
+  bread: '<path d="M12 30c0-7 6-12 13-12h14c7 0 13 5 13 12v14a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4z"/><path d="M24 26l4 6M32 24l4 6M40 26l4 6"/>',
+  bowl: '<path d="M10 32h44c0 11-10 18-22 18S10 43 10 32z"/><path d="M24 25c0-3 3-3 3-6M32 25c0-3 3-3 3-6M40 25c0-3 3-3 3-6"/>',
+  muffin: '<path d="M16 34c0-9 7-16 16-16s16 7 16 16z"/><path d="M18 34l4 16h20l4-16"/><path d="M28 34v16M36 34v16"/>',
+  drink: '<path d="M20 14h24l-3.2 33.4a4 4 0 0 1-4 3.6H27.2a4 4 0 0 1-4-3.6z"/><path d="M21.6 28h20.8"/><path d="M36 14l5-7h6"/>'
+};
+function foodKind(r) {
+  if (r.kind === 'drink') return 'drink';
+  const s = ((r.title || '') + ' ' + (r.tags || []).join(' ')).toLowerCase();
+  if (/cookie/.test(s)) return 'cookie';
+  if (/lemon|citrus|lime/.test(s)) return 'lemon';
+  if (/bread|loaf|focaccia|brioche|\bbuns?\b|\brolls?\b/.test(s)) return 'bread';
+  if (/soup|dinner|pasta|stew|chili|curry|salad|lunch|bowl/.test(s)) return 'bowl';
+  return 'muffin';
+}
+const foodSVG = r => '<svg class="food" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + FOOD_SVG[foodKind(r)] + '</svg>';
 const SVG = (d, extra = '') => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true" ${extra}>${d}</svg>`;
 const I = {
   check: SVG('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
@@ -439,7 +459,7 @@ const ready = () => mode !== 'loading' && COLS.every(c => loaded.has(c));
 const state = {
   view: 'recipes', recipeId: null,
   pantryQ: '', pantryLoc: 'All', pantryStatus: 'All',
-  recipeQ: '', recipeTags: new Set(), onlyFav: false, canMake: false, recipeSort: 'recent',
+  kind: 'food', recipeQ: '', recipeTags: new Set(), onlyFav: false, canMake: false, recipeSort: 'recent',
   weekStart: mondayOf(new Date()),
   scale: {}, metric: false, cook: false
 };
@@ -634,7 +654,9 @@ function renderNow() {
   if (keep) { const el = document.getElementById(keep.id); if (el && el !== document.activeElement) { el.focus(); try { el.setSelectionRange(keep.s, keep.e); } catch {} } }
 }
 function renderNav() {
-  $$('.tab').forEach(t => { if (t.dataset.view === state.view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
+  if (state.recipeId) { const cur = data.recipes.get(state.recipeId); if (cur) state.kind = cur.kind === 'drink' ? 'drink' : 'food'; }
+  const navView = state.view === 'recipes' && state.kind === 'drink' ? 'drinks' : state.view;
+  $$('.tab').forEach(t => { if (t.dataset.view === navView) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
   const lowN = [...data.pantry.values()].filter(p => pantryStatus(p) !== 'ok').length;
   const shopN = [...data.shopping.values()].filter(s => !s.done).length;
   const bp = $('#b-pantry'), bs = $('#b-shopping');
@@ -756,8 +778,11 @@ function renderRecipes() {
   $('#recipe-index').hidden = false; $('#recipe-detail').hidden = true;
   const grid = $('#recipe-grid');
   if (!ready()) { grid.innerHTML = loadingHTML; return; }
-  const all = [...data.recipes.values()];
-  $('#recipe-sub').textContent = all.length ? `${all.length} recipe${all.length > 1 ? 's' : ''} in your box` : 'Your recipe box';
+  const drinks = state.kind === 'drink';
+  const all = [...data.recipes.values()].filter(r => (r.kind === 'drink') === drinks);
+  $('#recipe-h1').textContent = drinks ? 'Drinks' : 'Recipes';
+  $('#r-new-btn').textContent = drinks ? 'Add drink' : 'Add recipe';
+  $('#recipe-sub').textContent = all.length ? `${all.length} ${drinks ? 'drink' : 'recipe'}${all.length > 1 ? 's' : ''} in your box` : (drinks ? 'Coffees, smoothies, cocktails and more' : 'Your recipe box');
   const tagCount = new Map();
   all.forEach(r => (r.tags || []).forEach(t => tagCount.set(t, (tagCount.get(t) || 0) + 1)));
   for (const t of state.recipeTags) if (!tagCount.has(t)) state.recipeTags.delete(t);
@@ -766,7 +791,7 @@ function renderRecipes() {
   $$('[data-act="r-onlyfav"]').forEach(b => b.setAttribute('aria-pressed', state.onlyFav));
   $$('[data-act="r-canmake"]').forEach(b => b.setAttribute('aria-pressed', state.canMake));
   if (!all.length) {
-    grid.innerHTML = emptyHTML(I.book, 'No recipes yet', 'Type one in, or paste a whole recipe from anywhere and Crumb will sort it into ingredients and steps.', `<button type="button" class="btn primary" data-act="r-new">Add a recipe</button>`);
+    grid.innerHTML = drinks ? emptyHTML(I.book, 'No drinks yet', 'Add lattes, lemonades, smoothies or cocktails. They work just like recipes: scale them, check off ingredients, and add them to your plan.', `<button type="button" class="btn primary" data-act="r-new">Add a drink</button>`) : emptyHTML(I.book, 'No recipes yet', 'Type one in, or paste a whole recipe from anywhere and Crumb will sort it into ingredients and steps.', `<button type="button" class="btn primary" data-act="r-new">Add a recipe</button>`);
     return;
   }
   const words = state.recipeQ.toLowerCase().split(/\s+/).filter(Boolean);
@@ -777,11 +802,11 @@ function renderRecipes() {
     sort === 'az' ? a.r.title.localeCompare(b.r.title) :
     sort === 'pantry' ? (b.pc.have / (b.pc.total || 1)) - (a.pc.have / (a.pc.total || 1)) :
     (b.r.updated || 0) - (a.r.updated || 0));
-  if (!rows.length) { grid.innerHTML = `<div class="empty"><p>No recipes match. Try fewer words or clear a tag.</p></div>`; return; }
+  if (!rows.length) { grid.innerHTML = `<div class="empty"><p>No ${drinks ? 'drinks' : 'recipes'} match. Try fewer words or clear a tag.</p></div>`; return; }
   grid.innerHTML = `<div class="grid">${rows.map(({ r, m, pc }) => `
     <article class="rcard">
       <button type="button" class="rcard-main" data-act="r-open" data-id="${r.id}">
-        <div class="rtile ${tileOf(r.title)}"><span>${esc((r.title || '?').trim()[0].toUpperCase())}</span></div>
+        <div class="rtile ${tileOf(r.title)}">${foodSVG(r)}</div>
         <div class="rbody">
           <h3>${esc(r.title)}</h3>
           <p class="rmeta">${timeLine(r) ? `<span>${I.clock}${esc(timeLine(r))}</span>` : ''}${r.servings ? `<span>${I.users}Serves ${esc(r.servings)}</span>` : ''}</p>
@@ -832,15 +857,15 @@ function renderDetail() {
   const steps = String(r.steps || '').split('\n').map(x => x.trim()).filter(Boolean);
   const related = (r.related || []).map(id => data.recipes.get(id)).filter(Boolean);
   const linkedFrom = [...data.recipes.values()].filter(o => o.id !== r.id && (o.related || []).includes(r.id) && !(r.related || []).includes(o.id));
-  const relLink = o => `<a href="#recipe-${o.id}"><span class="mini ${tileOf(o.title)}">${esc(o.title.trim()[0].toUpperCase())}</span>${esc(o.title)}</a>`;
+  const relLink = o => `<a href="#recipe-${o.id}"><span class="mini ${tileOf(o.title)}">${foodSVG(o)}</span>${esc(o.title)}</a>`;
   const servings = r.servings ? +r.servings * f : null;
   const yieldText = r.yield ? (f === 1 ? r.yield : r.yield.replace(/\d+(?:\.\d+)?/, m => fmtQty(+m * f))) : '';
   const factorStr = f === 1 ? 'Original' : '× ' + (fmtQty(f) || trimNum(f, 2));
   const isUrl = /^https?:\/\//i.test(r.source || '');
   el.innerHTML = `<div class="detail">
-    <a class="back" href="#recipes">${I.back}All recipes</a>
+    ${r.kind === 'drink' ? `<a class="back" href="#drinks">${I.back}All drinks</a>` : `<a class="back" href="#recipes">${I.back}All recipes</a>`}
     <div class="dhead">
-      <div class="rtile ${tileOf(r.title)}"><span>${esc(r.title.trim()[0].toUpperCase())}</span></div>
+      <div class="rtile ${tileOf(r.title)}">${foodSVG(r)}</div>
       <div class="dt">
         <h1>${esc(r.title)}</h1>
         <div class="dmeta">
@@ -927,13 +952,14 @@ function splitPasted(text) {
   }
   return out;
 }
-function recipeForm(r, focus) {
+function recipeForm(r, focus, kind) {
   const isNew = !r;
+  let curKind = r ? (r.kind === 'drink' ? 'drink' : 'food') : (kind === 'drink' ? 'drink' : 'food');
   r = r || { title: '', tags: [], servings: '', yield: '', prep: '', cook: '', source: '', ingredients: '', steps: '', notes: '', related: [] };
   const others = [...data.recipes.values()].filter(o => o.id !== r.id).sort((a, b) => a.title.localeCompare(b.title));
   const m = openModal({
     wide: true,
-    title: isNew ? 'Add a recipe' : 'Edit recipe',
+    title: isNew ? (curKind === 'drink' ? 'Add a drink' : 'Add a recipe') : 'Edit recipe',
     body: `
       <details class="paste" ${isNew ? 'open' : ''}>
         <summary>Paste a whole recipe</summary>
@@ -946,6 +972,7 @@ function recipeForm(r, focus) {
           <p class="ai-out" id="rf-ai" hidden></p>
         </div>
       </details>
+      <div class="field"><span>Type</span><div><div class="seg" role="group" aria-label="Recipe type"><button type="button" data-m="kind" data-v="food" aria-pressed="${curKind === 'food'}">Food</button><button type="button" data-m="kind" data-v="drink" aria-pressed="${curKind === 'drink'}">Drink</button></div></div></div>
       <label class="field"><span>Title</span><input id="rf-title" type="text" value="${esc(r.title)}" placeholder="Brown butter chocolate chip cookies" autocomplete="off"></label>
       <div class="row">
         <label class="field"><span>Servings</span><input id="rf-serv" type="number" min="0" step="any" value="${esc(r.servings)}"></label>
@@ -968,6 +995,7 @@ function recipeForm(r, focus) {
     foot: `${isNew ? '' : '<button type="button" class="btn danger" data-m="del">Delete</button>'}<span class="sp"></span><button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn primary" data-m="save">${isNew ? 'Save recipe' : 'Save'}</button>`
   });
   const E = id => $('#' + id, m.el);
+  m.on('kind', b => { curKind = b.dataset.v; $$('[data-m="kind"]', m.el).forEach(x => x.setAttribute('aria-pressed', x === b)); });
   if (focus === 'related' && E('rf-relq')) { E('rf-related-wrap').scrollIntoView({ block: 'center' }); E('rf-relq').focus(); }
   else if (!isNew) E('rf-title').focus();
   else E('rf-paste').focus();
@@ -1037,7 +1065,7 @@ ${t.slice(0, 24000)}
       yield: E('rf-yield').value.trim(), prep: E('rf-prep').value.trim(), cook: E('rf-cook').value.trim(),
       tags: [...new Set(E('rf-tags').value.split(',').map(t => t.trim().toLowerCase().replace(/^#/, '')).filter(Boolean))],
       source: E('rf-source').value.trim(), ingredients: E('rf-ing').value.trim(), steps: E('rf-steps').value.trim(), notes: E('rf-notes').value.trim(),
-      related, created: r.created || Date.now()
+      related, kind: curKind, created: r.created || Date.now()
     });
     // keep links two-way
     const before = new Set(r.related || []);
@@ -1052,7 +1080,7 @@ ${t.slice(0, 24000)}
     remove('recipes', r.id);
     for (const o of data.recipes.values()) if ((o.related || []).includes(r.id)) put('recipes', { ...o, related: o.related.filter(x => x !== r.id) });
     for (const e of data.plan.values()) if (e.recipeId === r.id) remove('plan', e.id);
-    m.close(); location.hash = 'recipes';
+    m.close(); location.hash = r.kind === 'drink' ? 'drinks' : 'recipes';
   });
 }
 
@@ -1348,7 +1376,7 @@ function renderPlan() {
       ${es.map(e => {
         const r = e.recipeId && data.recipes.get(e.recipeId);
         const title = r ? `<a class="et" href="#recipe-${r.id}">${esc(r.title)}</a>` : `<span class="et">${esc(e.text || 'Removed recipe')}</span>`;
-        return `<div class="entry s-${esc(e.slot)} ${e.cooked ? 'cooked' : ''}">
+        return `<div class="entry ${r ? tileOf(r.title) : ''} ${e.cooked ? 'cooked' : ''}">
           <span class="slot">${esc(e.slot)}</span>${title}
           <div class="er"><span>${r && e.servings ? `${esc(fmtQty(+e.servings))} servings` : ''}${e.cooked ? ' · made' : ''}</span>
             <span class="ea">${r && !e.cooked ? `<button type="button" class="mini-btn" data-act="pl-cook" data-id="${e.id}" aria-label="Mark as made" title="I made this">${I.check}</button>` : ''}<button type="button" class="mini-btn" data-act="pl-del" data-id="${e.id}" aria-label="Remove from plan" title="Remove">${I.x}</button></span></div>
@@ -1544,7 +1572,7 @@ const A = {
   'p-status': t => { state.pantryStatus = t.dataset.v; render(); },
   'p-restock': () => restockLow(),
   // recipes
-  'r-new': () => recipeForm(),
+  'r-new': () => recipeForm(null, null, state.kind),
   'r-open': (t, id) => { location.hash = 'recipe-' + id; },
   'r-edit': (t, id) => recipeForm(data.recipes.get(id), t.dataset.focus),
   'r-fav': (t, id) => { const r = data.recipes.get(id); if (r) put('recipes', { ...r, fav: !r.fav, updated: r.updated }); },
@@ -1627,11 +1655,12 @@ $('#shop-quick').addEventListener('submit', e => {
 const VIEWS = ['pantry', 'recipes', 'shopping', 'plan'];
 function route() {
   const h = decodeURIComponent(location.hash.slice(1));
-  const prev = state.view + state.recipeId;
+  const prev = state.view + state.kind + state.recipeId;
   if (h.startsWith('recipe-')) { state.view = 'recipes'; state.recipeId = h.slice(7); }
-  else { state.view = VIEWS.includes(h) ? h : 'recipes'; state.recipeId = null; }
+  else if (h === 'drinks') { state.view = 'recipes'; state.kind = 'drink'; state.recipeId = null; }
+  else { state.view = VIEWS.includes(h) ? h : 'recipes'; state.recipeId = null; if (state.view === 'recipes') state.kind = 'food'; }
   VIEWS.forEach(v => { $('#v-' + v).hidden = v !== state.view; });
-  if (prev !== state.view + state.recipeId) window.scrollTo(0, 0);
+  if (prev !== state.view + state.kind + state.recipeId) window.scrollTo(0, 0);
   renderNow();
 }
 window.addEventListener('hashchange', route);
