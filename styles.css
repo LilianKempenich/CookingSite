@@ -103,7 +103,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 96px; }
 .btn.primary .spark { color: inherit; }
 
 .search { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 0 14px; min-width: 0; flex: 1 1 240px; max-width: 420px; color: var(--muted); }
-.search input { border: 0; background: transparent; padding: 9px 0; outline: none; flex: 1; min-width: 0; color: var(--ink); }
+.search input, .search input[type="search"] { border: 0; border-radius: 0; background: transparent; padding: 9px 0; outline: none; flex: 1; min-width: 0; color: var(--ink); }
 .search:focus-within { border-color: var(--accent); }
 
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
