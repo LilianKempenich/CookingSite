@@ -1,0 +1,33 @@
+{
+  "app": "crumb",
+  "version": 1,
+  "exported": "2026-10-29T20:04:51.927Z",
+  "pantry": [],
+  "recipes": [
+    {
+      "title": "Iced fruit tea",
+      "tags": [
+        "iced",
+        "tea"
+      ],
+      "servings": 1,
+      "yield": "~24 oz",
+      "prep": "10",
+      "cook": "Shake",
+      "source": "",
+      "ingredients": "300 ml tea base\n6 pumps syrup\n\nOptional: sweetener, such as simple syrup",
+      "steps": "Steep the tea to your liking\nIn a shaker, put in tea base and syrup\nAdd plenty of ice\nShake 10 seconds\nStrain and pour into a cup",
+      "notes": "",
+      "related": [],
+      "id": "rmvtz0og7vpgmo",
+      "kind": "drink",
+      "created": 1793304199879,
+      "serveIn": "Any glass",
+      "ways": [],
+      "updated": 1793304232941
+    }
+  ],
+  "shopping": [],
+  "plan": [],
+  "settings": []
+}
